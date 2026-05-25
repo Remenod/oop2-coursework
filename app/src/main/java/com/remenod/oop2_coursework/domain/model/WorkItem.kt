@@ -60,6 +60,8 @@ abstract class WorkItem(
         if (canBeCompleted()) {
             status = WorkStatus.DONE
             updatedAt = LocalDateTime.now()
+        } else {
+            throw IllegalStateException("Work item cannot be completed")
         }
     }
 
