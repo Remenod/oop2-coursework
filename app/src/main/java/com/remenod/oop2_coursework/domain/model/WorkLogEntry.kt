@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 data class WorkLogEntry(
     val id: Long,
     val itemId: Long,
-    val timestamp: LocalDateTime,
+    val timestamp: LocalDateTime = LocalDateTime.now(),
     val minutesSpent: Int,
     val oldStatus: WorkStatus,
     val newStatus: WorkStatus,
