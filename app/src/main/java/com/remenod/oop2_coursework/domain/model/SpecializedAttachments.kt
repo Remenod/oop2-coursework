@@ -24,7 +24,8 @@ class LocalFileResource(
     path: String
 ) : ResourceAttachment(id, name, path) {
     override fun open() {
-        // TODO: Implement opening local file using Android Intent
+        // Mock opening local file
+        println("Opening local file at: $path")
     }
 
     override fun getDisplayName(): String = name
@@ -39,7 +40,8 @@ class CloudFileResource(
     val cloudProvider: String
 ) : ResourceAttachment(id, name, path) {
     override fun open() {
-        // TODO: Implement opening/downloading cloud file
+        // Mock opening cloud file
+        println("Opening $cloudProvider file: $path")
     }
 
     override fun getDisplayName(): String = "[Cloud] $name"
@@ -53,7 +55,8 @@ class GitHubRepositoryLink(
     url: String
 ) : LinkAttachment(id, name, url), Syncable {
     override fun open() {
-        // TODO: Open URL in browser or external app
+        // Mock opening GitHub link
+        println("Opening GitHub repo: $url")
     }
 
     override fun getDisplayName(): String = "GitHub: $name"
@@ -61,7 +64,8 @@ class GitHubRepositoryLink(
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.BROWSER
 
     override fun sync() {
-        // TODO: Sync commits, issues, branches via GitHub API
+        // Mock sync
+        println("Syncing with GitHub API for: $url")
     }
 }
 
@@ -71,7 +75,8 @@ class GoogleClassroomLink(
     url: String
 ) : LinkAttachment(id, name, url), Syncable, Submittable {
     override fun open() {
-        // TODO: Open Classroom assignment
+        // Mock opening Classroom link
+        println("Opening Google Classroom: $url")
     }
 
     override fun getDisplayName(): String = "Classroom: $name"
@@ -79,10 +84,12 @@ class GoogleClassroomLink(
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.BROWSER
 
     override fun sync() {
-        // TODO: Sync deadline and status from Google Classroom API
+        // Mock sync
+        println("Syncing with Google Classroom API for: $url")
     }
 
     override fun submit() {
-        // TODO: Submit assignment via Google Classroom API
+        // Mock submit
+        println("Submitting work to Google Classroom: $url")
     }
 }
