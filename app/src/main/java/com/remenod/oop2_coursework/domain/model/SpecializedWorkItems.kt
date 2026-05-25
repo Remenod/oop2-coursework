@@ -1,21 +1,19 @@
 package com.remenod.oop2_coursework.domain.model
 
-import java.time.LocalDateTime
-
 class ProgrammingTask(
     id: Long,
     title: String,
     description: String,
     var commitsCount: Int = 0,   // Probably I would not figure out how to make dis automatic
     var issuesResolved: Int = 0, // Probably I would not figure out how to make dis automatic
-    var testsPassed: Double = 0.0 // 0.0 to 1.0
-) : AtomicWorkItem(id, title, description) {
+    var testsPassed: Double = 0.0, // 0.0 to 1.0
+    estimatedMinutes: Int = 0
+) : AtomicWorkItem(id, title, description, estimatedMinutes = estimatedMinutes) {
     
     override fun calculateProgress(): ProgressSnapshot {
         val checklistProgress = getChecklistProgress()
-        // Mocking commitProgress and issueProgress as we don't have real values here
-        val commitProgress = if (commitsCount > 5) 1.0 else commitsCount / 5.0
-        val issueProgress = if (issuesResolved > 2) 1.0 else issuesResolved / 2.0
+        val commitProgress = (commitsCount / 5.0).coerceAtMost(1.0)
+        val issueProgress = (issuesResolved / 2.0).coerceAtMost(1.0)
         val testProgress = testsPassed
 
         val totalProgress = checklistProgress * 0.4 + commitProgress * 0.25 + issueProgress * 0.25 + testProgress * 0.1
@@ -31,7 +29,7 @@ class ProgrammingTask(
     }
 
     override fun validateCompletion(): Boolean {
-        return calculateProgress().percent >= 0.95 // Require 95% progress to complete
+        return calculateProgress().percent >= 0.95
     }
 }
 
