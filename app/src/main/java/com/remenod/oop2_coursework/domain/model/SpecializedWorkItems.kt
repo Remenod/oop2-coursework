@@ -11,37 +11,48 @@ class ProgrammingTask(
     var testsPassed: Double = 0.0 // 0.0 to 1.0
 ) : AtomicWorkItem(id, title, description) {
     
-    override fun calculateProgress(): Double {
+    override fun calculateProgress(): ProgressSnapshot {
         val checklistProgress = getChecklistProgress()
         // Mocking commitProgress and issueProgress as we don't have real values here
         val commitProgress = if (commitsCount > 5) 1.0 else commitsCount / 5.0
         val issueProgress = if (issuesResolved > 2) 1.0 else issuesResolved / 2.0
         val testProgress = testsPassed
 
-        return checklistProgress * 0.4 + commitProgress * 0.25 + issueProgress * 0.25 + testProgress * 0.1
+        val totalProgress = checklistProgress * 0.4 + commitProgress * 0.25 + issueProgress * 0.25 + testProgress * 0.1
+        
+        val explanation = buildString {
+            append("${(checklistProgress * 100).toInt()}% checklist, ")
+            append("$commitsCount commits, ")
+            append("$issuesResolved issues, ")
+            append("${(testProgress * 100).toInt()}% tests")
+        }
+
+        return ProgressSnapshot(totalProgress, explanation)
     }
 
     override fun validateCompletion(): Boolean {
-        return calculateProgress() >= 0.95 // Require 95% progress to complete
+        return calculateProgress().percent >= 0.95 // Require 95% progress to complete
     }
 }
+
+data class ExamTopic(val name: String, val confidence: Int) // 0 to 100
 
 class ExamTask(
     id: Long,
     title: String,
     description: String,
-    val topics: List<TopicConfidence> = emptyList()
+    val topics: MutableList<ExamTopic> = mutableListOf()
 ) : AtomicWorkItem(id, title, description) {
     
-    data class TopicConfidence(val name: String, val confidence: Int) // 0 to 100
-
-    override fun calculateProgress(): Double {
-        if (topics.isEmpty()) return 0.0
-        return topics.map { it.confidence }.average() / 100.0
+    override fun calculateProgress(): ProgressSnapshot {
+        if (topics.isEmpty()) return ProgressSnapshot(0.0, "No topics defined")
+        val avgConfidence = topics.map { it.confidence }.average()
+        val percent = avgConfidence / 100.0
+        return ProgressSnapshot(percent, "Average confidence: ${(percent * 100).toInt()}% across ${topics.size} topics")
     }
 
     override fun validateCompletion(): Boolean {
-        return calculateProgress() >= 0.8
+        return calculateProgress().percent >= 0.8
     }
 }
 
@@ -56,9 +67,21 @@ class SeminarTask(
     var rehearsalDone: Boolean = false
 ) : AtomicWorkItem(id, title, description) {
     
-    override fun calculateProgress(): Double {
+    override fun calculateProgress(): ProgressSnapshot {
         val stages = listOf(topicSelected, materialsCollected, speechPrepared, slidesPrepared, rehearsalDone)
-        return stages.count { it }.toDouble() / stages.size
+        val completedCount = stages.count { it }
+        val percent = completedCount.toDouble() / stages.size
+        
+        val nextStep = when {
+            !topicSelected -> "Select topic"
+            !materialsCollected -> "Collect materials"
+            !speechPrepared -> "Prepare speech"
+            !slidesPrepared -> "Prepare slides"
+            !rehearsalDone -> "Do rehearsal"
+            else -> "Ready"
+        }
+
+        return ProgressSnapshot(percent, "Stages: $completedCount/${stages.size}. Next: $nextStep")
     }
 
     override fun validateCompletion(): Boolean {
@@ -74,9 +97,10 @@ class ReadingTask(
     var totalPages: Int = 100
 ) : AtomicWorkItem(id, title, description) {
     
-    override fun calculateProgress(): Double {
-        if (totalPages == 0) return 1.0
-        return readPages.toDouble() / totalPages
+    override fun calculateProgress(): ProgressSnapshot {
+        if (totalPages == 0) return ProgressSnapshot(1.0, "No pages to read")
+        val percent = (readPages.toDouble() / totalPages).coerceAtMost(1.0)
+        return ProgressSnapshot(percent, "Read $readPages of $totalPages pages")
     }
 
     override fun validateCompletion(): Boolean {
@@ -90,8 +114,12 @@ class GenericTask(
     description: String
 ) : AtomicWorkItem(id, title, description) {
     
-    override fun calculateProgress(): Double {
-        return if (status == WorkStatus.DONE) 1.0 else getChecklistProgress()
+    override fun calculateProgress(): ProgressSnapshot {
+        return if (status == WorkStatus.DONE) {
+            ProgressSnapshot(1.0, "Completed")
+        } else {
+            ProgressSnapshot(getChecklistProgress(), getChecklistExplanation())
+        }
     }
 
     override fun validateCompletion(): Boolean {
@@ -105,15 +133,17 @@ class ProjectTask(
     description: String
 ) : CompositeWorkItem(id, title, description) {
     
-    override fun calculateProgress(): Double {
-        if (subTasks.isEmpty()) return 0.0
+    override fun calculateProgress(): ProgressSnapshot {
         
         val totalEstimated = subTasks.sumOf { it.estimatedMinutes.toDouble() }
-        if (totalEstimated == 0.0) {
-            return subTasks.map { it.getProgress() }.average()
+        val avgProgress = if (totalEstimated == 0.0) {
+            subTasks.map { it.getProgress() }.average()
+        } else {
+            subTasks.sumOf { it.getProgress() * (it.estimatedMinutes / totalEstimated) }
         }
         
-        return subTasks.sumOf { it.getProgress() * (it.estimatedMinutes / totalEstimated) }
+        val completed = subTasks.count { it.status == WorkStatus.DONE }
+        return ProgressSnapshot(avgProgress, "$completed/${subTasks.size} sub-tasks completed")
     }
 
     override fun validateCompletion(): Boolean {

@@ -43,10 +43,14 @@ abstract class WorkItem(
 
     // Template Method
     final override fun getProgress(): Double {
+        return getProgressSnapshot().percent
+    }
+
+    fun getProgressSnapshot(): ProgressSnapshot {
         return calculateProgress()
     }
 
-    protected abstract fun calculateProgress(): Double
+    protected abstract fun calculateProgress(): ProgressSnapshot
 
     override fun canBeCompleted(): Boolean {
         return validateCompletion()
