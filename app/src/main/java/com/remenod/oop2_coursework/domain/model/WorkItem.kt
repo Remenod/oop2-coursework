@@ -19,6 +19,9 @@ abstract class WorkItem(
     private val _attachments = mutableListOf<Attachment>()
     val attachments: List<Attachment> get() = _attachments
 
+    private val _logs = mutableListOf<WorkLogEntry>()
+    val logs: List<WorkLogEntry> get() = _logs
+
     fun addAttachment(attachment: Attachment) {
         _attachments.add(attachment)
         updatedAt = LocalDateTime.now()
@@ -30,6 +33,7 @@ abstract class WorkItem(
     }
 
     fun addLog(entry: WorkLogEntry) {
+        _logs.add(entry)
         updatedAt = LocalDateTime.now()
     }
 
