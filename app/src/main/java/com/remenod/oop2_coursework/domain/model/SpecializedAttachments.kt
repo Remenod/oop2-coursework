@@ -5,21 +5,21 @@ import com.remenod.oop2_coursework.domain.interfaces.Submittable
 import java.time.LocalDateTime
 
 abstract class LinkAttachment(
-    id: String,
+    id: Long,
     name: String,
     val url: String,
     createdAt: LocalDateTime = LocalDateTime.now()
 ) : Attachment(id, name, createdAt)
 
 abstract class ResourceAttachment(
-    id: String,
+    id: Long,
     name: String,
     val path: String,
     createdAt: LocalDateTime = LocalDateTime.now()
 ) : Attachment(id, name, createdAt)
 
 class LocalFileResource(
-    id: String,
+    id: Long,
     name: String,
     path: String
 ) : ResourceAttachment(id, name, path) {
@@ -33,7 +33,7 @@ class LocalFileResource(
 }
 
 class CloudFileResource(
-    id: String,
+    id: Long,
     name: String,
     path: String,
     val cloudProvider: String
@@ -48,7 +48,7 @@ class CloudFileResource(
 }
 
 class GitHubRepositoryLink(
-    id: String,
+    id: Long,
     name: String,
     url: String
 ) : LinkAttachment(id, name, url), Syncable {
@@ -66,7 +66,7 @@ class GitHubRepositoryLink(
 }
 
 class GoogleClassroomLink(
-    id: String,
+    id: Long,
     name: String,
     url: String
 ) : LinkAttachment(id, name, url), Syncable, Submittable {

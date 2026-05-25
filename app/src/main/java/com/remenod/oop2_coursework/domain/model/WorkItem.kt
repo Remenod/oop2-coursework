@@ -5,7 +5,7 @@ import com.remenod.oop2_coursework.domain.interfaces.ProgressTrackable
 import java.time.LocalDateTime
 
 abstract class WorkItem(
-    val id: String,
+    val id: Long,
     var title: String,
     var description: String,
     var status: WorkStatus = WorkStatus.CREATED,

@@ -4,7 +4,7 @@ import com.remenod.oop2_coursework.domain.interfaces.ProgressTrackable
 import java.time.LocalDateTime
 
 class Discipline(
-    val id: String,
+    val id: Long,
     var name: String,
     var teacherName: String,
     var semester: Int,

@@ -3,7 +3,7 @@ package com.remenod.oop2_coursework.domain.model
 import java.time.LocalDateTime
 
 class ProgrammingTask(
-    id: String,
+    id: Long,
     title: String,
     description: String,
     var commitsCount: Int = 0,   // Probably I would not figure out how to make dis automatic
@@ -27,7 +27,7 @@ class ProgrammingTask(
 }
 
 class ExamTask(
-    id: String,
+    id: Long,
     title: String,
     description: String,
     val topics: List<TopicConfidence> = emptyList()
@@ -46,7 +46,7 @@ class ExamTask(
 }
 
 class SeminarTask(
-    id: String,
+    id: Long,
     title: String,
     description: String,
     var topicSelected: Boolean = false,
@@ -67,7 +67,7 @@ class SeminarTask(
 }
 
 class ReadingTask(
-    id: String,
+    id: Long,
     title: String,
     description: String,
     var readPages: Int = 0,
@@ -85,7 +85,7 @@ class ReadingTask(
 }
 
 class GenericTask(
-    id: String,
+    id: Long,
     title: String,
     description: String
 ) : AtomicWorkItem(id, title, description) {
@@ -100,7 +100,7 @@ class GenericTask(
 }
 
 class ProjectTask(
-    id: String,
+    id: Long,
     title: String,
     description: String
 ) : CompositeWorkItem(id, title, description) {

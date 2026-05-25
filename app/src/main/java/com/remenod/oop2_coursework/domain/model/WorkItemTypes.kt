@@ -3,7 +3,7 @@ package com.remenod.oop2_coursework.domain.model
 import java.time.LocalDateTime
 
 abstract class AtomicWorkItem(
-    id: String,
+    id: Long,
     title: String,
     description: String,
     status: WorkStatus = WorkStatus.CREATED,
@@ -34,7 +34,7 @@ data class ChecklistItem(
 )
 
 abstract class CompositeWorkItem(
-    id: String,
+    id: Long,
     title: String,
     description: String,
     status: WorkStatus = WorkStatus.CREATED,

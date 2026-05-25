@@ -3,7 +3,7 @@ package com.remenod.oop2_coursework.domain.model
 import java.time.LocalDateTime
 
 abstract class Attachment(
-    val id: String,
+    val id: Long,
     val name: String,
     val createdAt: LocalDateTime = LocalDateTime.now()
 ) {
