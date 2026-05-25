@@ -26,6 +26,12 @@ abstract class AtomicWorkItem(
         val completed = _checklist.count { it.isCompleted }
         return completed.toDouble() / _checklist.size
     }
+
+    protected fun getChecklistExplanation(): String {
+        if (_checklist.isEmpty()) return "No checklist items"
+        val completed = _checklist.count { it.isCompleted }
+        return "$completed/${_checklist.size} checklist items completed"
+    }
 }
 
 data class ChecklistItem(
