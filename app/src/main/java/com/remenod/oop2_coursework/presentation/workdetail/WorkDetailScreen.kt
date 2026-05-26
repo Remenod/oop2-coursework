@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.domain.model.*
@@ -27,6 +28,8 @@ fun WorkDetailScreen(
     onSubTaskClick: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val uriHandler = LocalUriHandler.current
+
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
     var showAddAttachmentDialog by remember { mutableStateOf(false) }
@@ -116,7 +119,20 @@ fun WorkDetailScreen(
                         attachments = item.attachments,
                         onAdd = { showAddAttachmentDialog = true },
                         onRemove = viewModel::removeAttachment,
-                        onOpen = { viewModel.openAttachment(it.id) }
+                        onOpen = { attachment ->
+                            if (attachment.target.startsWith("http")) {
+                                try {
+                                    uriHandler.openUri(attachment.target)
+                                    viewModel.openAttachment(attachment.id)
+                                } catch (_: Exception) {
+                                    viewModel.openAttachment(attachment.id)
+                                }
+                            } else {
+                                viewModel.openAttachment(attachment.id)
+                            }
+                        },
+                        onSync = viewModel::syncAttachment,
+                        onSubmit = viewModel::submitAttachment
                     )
                 }
 
@@ -232,6 +248,7 @@ fun WorkDetailScreen(
 
     if (showAddAttachmentDialog) {
         AttachmentEditSheet(
+            taskType = uiState.item?.type ?: WorkItemType.GENERIC,
             onDismiss = { showAddAttachmentDialog = false },
             onConfirm = viewModel::addAttachment
         )
@@ -403,6 +420,19 @@ fun ProgrammingTaskSection(
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Programming Stats", style = MaterialTheme.typography.titleSmall)
+
+            if (item.repositoryUrl != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text("Linked repository", style = MaterialTheme.typography.labelMedium)
+                        Text(item.repositoryUrl, style = MaterialTheme.typography.labelSmall)
+                        item.branch?.let { Text("Branch: $it", style = MaterialTheme.typography.labelSmall) }
+                    }
+                }
+            }
             
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))

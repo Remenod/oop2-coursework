@@ -86,6 +86,12 @@ data class AttachmentRecord(
     val subType: AttachmentSubtype,
     val urlOrPath: String,
     val provider: String? = null,
+    val purpose: AttachmentPurpose = AttachmentPurpose.REFERENCE,
+    val notes: String = "",
+    val branch: String? = null,
+    val repositoryOwner: String? = null,
+    val repositoryName: String? = null,
+    val lastOpenedAt: LocalDateTime? = null,
     val createdAt: LocalDateTime
 )
 

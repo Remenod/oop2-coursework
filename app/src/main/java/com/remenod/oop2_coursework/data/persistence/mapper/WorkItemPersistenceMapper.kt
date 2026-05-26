@@ -43,6 +43,8 @@ object WorkItemPersistenceMapper {
                 estimatedMinutes = item.estimatedMinutes,
 
                 // Programming
+                repositoryUrl = (item as? ProgrammingTask)?.repositoryUrl,
+                branch = (item as? ProgrammingTask)?.branch,
                 commitsCount = (item as? ProgrammingTask)?.commitsCount,
                 requiredCommits = (item as? ProgrammingTask)?.requiredCommits,
                 issuesResolved = (item as? ProgrammingTask)?.issuesResolved,
@@ -171,6 +173,8 @@ object WorkItemPersistenceMapper {
                 issuesResolved = record.issuesResolved ?: 0,
                 requiredIssues = record.requiredClosedIssues ?: 2,
                 testsPassed = record.testsPassed ?: 0.0,
+                repositoryUrl = record.repositoryUrl,
+                branch = record.branch,
                 estimatedMinutes = record.estimatedMinutes
             )
             WorkItemType.EXAM -> ExamTask(record.id, record.title, record.description)

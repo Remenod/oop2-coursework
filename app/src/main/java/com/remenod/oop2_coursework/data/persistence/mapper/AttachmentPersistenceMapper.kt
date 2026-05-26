@@ -28,17 +28,62 @@ object AttachmentPersistenceMapper {
                 else -> ""
             },
             provider = (domain as? CloudFileResource)?.cloudProvider,
+            purpose = domain.purpose,
+            notes = domain.notes,
+            branch = (domain as? GitHubRepositoryLink)?.effectiveBranch,
+            repositoryOwner = (domain as? GitHubRepositoryLink)?.owner,
+            repositoryName = (domain as? GitHubRepositoryLink)?.repositoryName,
+            lastOpenedAt = domain.lastOpenedAt,
             createdAt = domain.createdAt
         )
     }
 
     fun restore(record: AttachmentRecord): Attachment {
-        return when (record.subType) {
-            AttachmentSubtype.GITHUB -> GitHubRepositoryLink(record.id, record.name, record.urlOrPath)
-            AttachmentSubtype.GOOGLE_CLASSROOM -> GoogleClassroomLink(record.id, record.name, record.urlOrPath)
-            AttachmentSubtype.LOCAL_FILE -> LocalFileResource(record.id, record.name, record.urlOrPath)
-            AttachmentSubtype.CLOUD_FILE -> CloudFileResource(record.id, record.name, record.urlOrPath, record.provider ?: "Unknown")
-            AttachmentSubtype.UNKNOWN -> GenericWebLink(record.id, record.name, record.urlOrPath)
+        val attachment = when (record.subType) {
+            AttachmentSubtype.GITHUB -> GitHubRepositoryLink(
+                id = record.id,
+                title = record.name,
+                url = record.urlOrPath,
+                branch = record.branch,
+                createdAt = record.createdAt,
+                purpose = record.purpose,
+                notes = record.notes
+            )
+            AttachmentSubtype.GOOGLE_CLASSROOM -> GoogleClassroomLink(
+                id = record.id,
+                title = record.name,
+                url = record.urlOrPath,
+                createdAt = record.createdAt,
+                purpose = record.purpose,
+                notes = record.notes
+            )
+            AttachmentSubtype.LOCAL_FILE -> LocalFileResource(
+                id = record.id,
+                title = record.name,
+                path = record.urlOrPath,
+                createdAt = record.createdAt,
+                purpose = record.purpose,
+                notes = record.notes
+            )
+            AttachmentSubtype.CLOUD_FILE -> CloudFileResource(
+                id = record.id,
+                title = record.name,
+                path = record.urlOrPath,
+                cloudProvider = record.provider ?: "Unknown",
+                createdAt = record.createdAt,
+                purpose = record.purpose,
+                notes = record.notes
+            )
+            AttachmentSubtype.UNKNOWN -> GenericWebLink(
+                id = record.id,
+                title = record.name,
+                url = record.urlOrPath,
+                createdAt = record.createdAt,
+                purpose = record.purpose,
+                notes = record.notes
+            )
         }
+        attachment.lastOpenedAt = record.lastOpenedAt
+        return attachment
     }
 }
