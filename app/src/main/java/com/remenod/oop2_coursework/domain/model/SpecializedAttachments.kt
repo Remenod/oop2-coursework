@@ -6,60 +6,60 @@ import java.time.LocalDateTime
 
 abstract class LinkAttachment(
     id: Long,
-    name: String,
-    val url: String,
+    title: String,
+    var url: String,
     createdAt: LocalDateTime = LocalDateTime.now()
-) : Attachment(id, name, createdAt)
+) : Attachment(id, title, createdAt)
 
 abstract class ResourceAttachment(
     id: Long,
-    name: String,
-    val path: String,
+    title: String,
+    var pathOrUrl: String,
     createdAt: LocalDateTime = LocalDateTime.now()
-) : Attachment(id, name, createdAt)
+) : Attachment(id, title, createdAt)
 
 class LocalFileResource(
     id: Long,
-    name: String,
+    title: String,
     path: String
-) : ResourceAttachment(id, name, path) {
+) : ResourceAttachment(id, title, path) {
     override fun open() {
         // Mock opening local file
-        println("Opening local file at: $path")
+        println("Opening local file at: $pathOrUrl")
     }
 
-    override fun getDisplayName(): String = name
+    override fun getDisplayName(): String = title
 
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.LOCAL
 }
 
 class CloudFileResource(
     id: Long,
-    name: String,
+    title: String,
     path: String,
     val cloudProvider: String
-) : ResourceAttachment(id, name, path) {
+) : ResourceAttachment(id, title, path) {
     override fun open() {
         // Mock opening cloud file
-        println("Opening $cloudProvider file: $path")
+        println("Opening $cloudProvider file: $pathOrUrl")
     }
 
-    override fun getDisplayName(): String = "[Cloud] $name"
+    override fun getDisplayName(): String = "[Cloud] $title"
 
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.CLOUD
 }
 
 class GitHubRepositoryLink(
     id: Long,
-    name: String,
+    title: String,
     url: String
-) : LinkAttachment(id, name, url), Syncable {
+) : LinkAttachment(id, title, url), Syncable {
     override fun open() {
         // Mock opening GitHub link
         println("Opening GitHub repo: $url")
     }
 
-    override fun getDisplayName(): String = "GitHub: $name"
+    override fun getDisplayName(): String = "GitHub: $title"
 
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.BROWSER
 
@@ -71,15 +71,15 @@ class GitHubRepositoryLink(
 
 class GoogleClassroomLink(
     id: Long,
-    name: String,
+    title: String,
     url: String
-) : LinkAttachment(id, name, url), Syncable, Submittable {
+) : LinkAttachment(id, title, url), Syncable, Submittable {
     override fun open() {
         // Mock opening Classroom link
         println("Opening Google Classroom: $url")
     }
 
-    override fun getDisplayName(): String = "Classroom: $name"
+    override fun getDisplayName(): String = "Classroom: $title"
 
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.BROWSER
 

@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 abstract class Attachment(
     val id: Long,
-    val name: String,
+    var title: String,
     val createdAt: LocalDateTime = LocalDateTime.now()
 ) {
     abstract fun open()

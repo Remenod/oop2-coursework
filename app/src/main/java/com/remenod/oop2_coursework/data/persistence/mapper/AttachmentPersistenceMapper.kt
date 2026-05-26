@@ -18,7 +18,7 @@ object AttachmentPersistenceMapper {
         return AttachmentRecord(
             id = domain.id,
             workItemId = workItemId,
-            name = domain.name,
+            name = domain.title,
             type = type,
             subType = subType,
             urlOrPath = when (domain) {
