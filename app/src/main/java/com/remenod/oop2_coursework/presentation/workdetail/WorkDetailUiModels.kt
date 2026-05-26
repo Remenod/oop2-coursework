@@ -55,6 +55,7 @@ data class WorkItemDetailUiModel(
     val subTasks: List<SubTaskUiModel> = emptyList(),
 
     val attachments: List<AttachmentUiModel> = emptyList(),
+    val logs: List<WorkLogEntryUiModel> = emptyList()
 )
 
 data class ChecklistUiModel(
@@ -90,5 +91,13 @@ data class AttachmentUiModel(
     val typeLabel: String,
     val subtypeLabel: String,
     val target: String,
+    val createdAtText: String
+)
+
+data class WorkLogEntryUiModel(
+    val id: Long,
+    val message: String,
+    val minutesSpent: Int,
+    val minutesSpentText: String,
     val createdAtText: String
 )

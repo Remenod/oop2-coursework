@@ -30,6 +30,7 @@ fun WorkDetailScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
     var showAddAttachmentDialog by remember { mutableStateOf(false) }
+    var showAddLogDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -107,6 +108,23 @@ fun WorkDetailScreen(
                             }
                         }
                     }
+                }
+
+                item {
+                    AttachmentSection(
+                        attachments = item.attachments,
+                        onAdd = { showAddAttachmentDialog = true },
+                        onRemove = viewModel::removeAttachment,
+                        onOpen = { viewModel.openAttachment(it.id) }
+                    )
+                }
+
+                item {
+                    WorkLogSection(
+                        logs = item.logs,
+                        onAdd = { showAddLogDialog = true },
+                        onRemove = viewModel::removeLogEntry
+                    )
                 }
 
                 if (item.type != WorkItemType.PROJECT) {
@@ -195,7 +213,6 @@ fun WorkDetailScreen(
             initialEstimatedMinutes = uiState.item!!.estimatedMinutes,
             initialType = uiState.item!!.type,
             allowTypeChange = false,
-            allowDoneStatus = true,
             onDismiss = { showEditDialog = false },
             onConfirm = { result ->
                 viewModel.updateMetadata(result)
@@ -205,11 +222,24 @@ fun WorkDetailScreen(
 
     if (showAddSubTaskDialog) {
         WorkItemEditSheet(
-            allowDoneStatus = false,
             onDismiss = { showAddSubTaskDialog = false },
             onConfirm = { result ->
                 viewModel.addSubTask(result)
             }
+        )
+    }
+
+    if (showAddAttachmentDialog) {
+        AttachmentEditSheet(
+            onDismiss = { showAddAttachmentDialog = false },
+            onConfirm = viewModel::addAttachment
+        )
+    }
+
+    if (showAddLogDialog) {
+        WorkLogEditSheet(
+            onDismiss = { showAddLogDialog = false },
+            onConfirm = viewModel::addManualLog
         )
     }
 }

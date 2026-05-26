@@ -1,7 +1,9 @@
 package com.remenod.oop2_coursework.domain.repository
 
+import com.remenod.oop2_coursework.domain.model.Attachment
 import com.remenod.oop2_coursework.domain.model.Discipline
 import com.remenod.oop2_coursework.domain.model.WorkItem
+import com.remenod.oop2_coursework.domain.model.WorkLogEntry
 import com.remenod.oop2_coursework.domain.model.WorkStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -26,4 +28,7 @@ interface TaskRepository {
     suspend fun addAttachment(workItemId: Long, attachment: Attachment): Attachment
     suspend fun removeAttachment(workItemId: Long, attachmentId: Long)
 
+    // Work Logs
+    suspend fun addWorkLogEntry(workItemId: Long, entry: WorkLogEntry): WorkLogEntry
+    suspend fun removeWorkLogEntry(workItemId: Long, entryId: Long)
 }

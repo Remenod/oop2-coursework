@@ -38,6 +38,10 @@ class WorkDetailViewModel(
         _actionError.value = null
     }
 
+    private suspend fun addAutoLog(message: String, minutes: Int = 0) {
+        repository.addWorkLogEntry(workItemId, WorkLogEntry(0, message, minutesSpent = minutes))
+    }
+
     fun updateMetadata(result: WorkItemEditResult) {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
@@ -51,6 +55,7 @@ class WorkDetailViewModel(
                         estimatedMinutes = result.estimatedMinutes
                     )
                     repository.updateWorkItem(item)
+                    addAutoLog("Updated task metadata")
                     _actionError.value = null
                 } catch (e: Exception) {
                     _actionError.value = e.message ?: "Update failed"
@@ -66,6 +71,7 @@ class WorkDetailViewModel(
                     try {
                         item.updatePages(readPages, totalPages)
                         repository.updateWorkItem(item)
+                        addAutoLog("Updated reading progress: $readPages/$totalPages")
                         _actionError.value = null
                     } catch (e: Exception) {
                         _actionError.value = e.message ?: "Update failed"
@@ -91,6 +97,7 @@ class WorkDetailViewModel(
                     item.testsPassed = testsPassed
                     item.touch()
                     repository.updateWorkItem(item)
+                    addAutoLog("Updated programming stats")
                     _actionError.value = null
                 }
             }
@@ -109,6 +116,7 @@ class WorkDetailViewModel(
                     item.topics.add(ExamTopic(name, confidence))
                     item.touch()
                     repository.updateWorkItem(item)
+                    addAutoLog("Added exam topic: $name")
                 }
             }
         }
@@ -126,6 +134,7 @@ class WorkDetailViewModel(
                     item.topics[index] = topic.copy(confidence = confidence)
                     item.touch()
                     repository.updateWorkItem(item)
+                    addAutoLog("Updated exam topic confidence: ${topic.name}")
                 }
             }
         }
@@ -135,9 +144,11 @@ class WorkDetailViewModel(
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask && index in item.topics.indices) {
+                    val name = item.topics[index].name
                     item.topics.removeAt(index)
                     item.touch()
                     repository.updateWorkItem(item)
+                    addAutoLog("Removed exam topic: $name")
                 }
             }
         }
@@ -156,6 +167,7 @@ class WorkDetailViewModel(
                     }
                     item.touch()
                     repository.updateWorkItem(item)
+                    addAutoLog("Updated seminar stage: $stage to $checked")
                 }
             }
         }
@@ -168,6 +180,7 @@ class WorkDetailViewModel(
                 if (item is AtomicWorkItem) {
                     item.addChecklistItem(text)
                     repository.updateWorkItem(item)
+                    addAutoLog("Added checklist item: $text")
                 }
             }
         }
@@ -176,9 +189,11 @@ class WorkDetailViewModel(
     fun setChecklistItemCompleted(index: Int, completed: Boolean) {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
-                if (item is AtomicWorkItem) {
+                if (item is AtomicWorkItem && index in item.checklist.indices) {
+                    val text = item.checklist[index].text
                     item.setChecklistItemCompleted(index, completed)
                     repository.updateWorkItem(item)
+                    addAutoLog("${if (completed) "Completed" else "Unchecked"} checklist item: $text")
                 }
             }
         }
@@ -187,9 +202,10 @@ class WorkDetailViewModel(
     fun removeChecklistItem(index: Int) {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
-                if (item is AtomicWorkItem) {
+                if (item is AtomicWorkItem && index in item.checklist.indices) {
                     item.removeChecklistItem(index)
                     repository.updateWorkItem(item)
+                    addAutoLog("Removed checklist item")
                 }
             }
         }
@@ -199,10 +215,13 @@ class WorkDetailViewModel(
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 try {
-                    if (item.status == WorkStatus.DONE) {
+                    val isDone = item.status == WorkStatus.DONE
+                    if (isDone) {
                         item.changeStatus(WorkStatus.IN_PROGRESS)
+                        addAutoLog("Marked task as not done")
                     } else {
                         item.complete()
+                        addAutoLog("Marked task as done")
                     }
                     repository.updateWorkItem(item)
                     _actionError.value = null
@@ -218,6 +237,7 @@ class WorkDetailViewModel(
             try {
                 val item = WorkItemFactory.createFrom(result)
                 repository.addSubTask(workItemId, item)
+                addAutoLog("Added subtask: ${result.title}")
                 _actionError.value = null
             } catch (e: Exception) {
                 _actionError.value = e.message ?: "Could not add subtask"
@@ -256,6 +276,27 @@ class WorkDetailViewModel(
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 item.attachments.find { it.id == attachmentId }?.open()
             }
+        }
+    }
+
+    fun addManualLog(message: String, minutesSpent: Int) {
+        if (message.isBlank()) {
+            _actionError.value = "Message cannot be blank"
+            return
+        }
+        if (minutesSpent < 0) {
+            _actionError.value = "Minutes spent cannot be negative"
+            return
+        }
+        viewModelScope.launch {
+            repository.addWorkLogEntry(workItemId, WorkLogEntry(0, message, minutesSpent = minutesSpent))
+            _actionError.value = null
+        }
+    }
+
+    fun removeLogEntry(logId: Long) {
+        viewModelScope.launch {
+            repository.removeWorkLogEntry(workItemId, logId)
         }
     }
 
@@ -324,6 +365,7 @@ class WorkDetailViewModel(
             } else emptyList(),
 
             attachments = attachments.map { it.toUiModel() },
+            logs = logs.sortedByDescending { it.createdAt }.map { it.toUiModel() }
         )
     }
 
@@ -352,6 +394,14 @@ class WorkDetailViewModel(
             createdAtText = DateTimeUiFormatter.formatDateTime(createdAt)
         )
     }
+
+    private fun WorkLogEntry.toUiModel(): WorkLogEntryUiModel {
+        return WorkLogEntryUiModel(
+            id = id,
+            message = message,
+            minutesSpent = minutesSpent,
+            minutesSpentText = DateTimeUiFormatter.estimatedTime(minutesSpent),
+            createdAtText = DateTimeUiFormatter.formatDateTime(createdAt)
         )
     }
 }
