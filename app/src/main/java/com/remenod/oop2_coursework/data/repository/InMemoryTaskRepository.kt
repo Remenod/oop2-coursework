@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 class InMemoryTaskRepository : TaskRepository {
     private val _disciplines = MutableStateFlow<List<Discipline>>(emptyList())
-    private val idGenerator = AtomicLong(1000L)
+    private val idGenerator = AtomicLong(2000L) // Start above demo data IDs
 
     override fun observeDisciplines(): Flow<List<Discipline>> = _disciplines
 
@@ -32,13 +32,12 @@ class InMemoryTaskRepository : TaskRepository {
         return null
     }
 
-    override suspend fun addDiscipline(discipline: Discipline) {
+    override suspend fun addDiscipline(discipline: Discipline): Discipline {
         if (discipline.id == 0L) {
-            val idField = discipline.javaClass.getDeclaredField("id")
-            idField.isAccessible = true
-            idField.set(discipline, idGenerator.incrementAndGet())
+            setId(discipline, idGenerator.incrementAndGet())
         }
         _disciplines.value = _disciplines.value + discipline
+        return discipline
     }
 
     override suspend fun updateDiscipline(discipline: Discipline) {
@@ -54,37 +53,30 @@ class InMemoryTaskRepository : TaskRepository {
         _disciplines.value = _disciplines.value.filterNot { it.id == id }
     }
 
-    override suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem) {
+    override suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem): WorkItem {
         val current = _disciplines.value.toMutableList()
-        val discipline = current.find { it.id == disciplineId } ?: return
+        val discipline = current.find { it.id == disciplineId } ?: return item
         
-        assignId(item)
+        if (item.id == 0L) setId(item, idGenerator.incrementAndGet())
         discipline.addWorkItem(item)
         _disciplines.value = current.toList()
+        return item
     }
 
-    override suspend fun addSubTask(parentId: Long, item: WorkItem) {
+    override suspend fun addSubTask(parentId: Long, item: WorkItem): WorkItem {
         val current = _disciplines.value.toMutableList()
         val parent = current.flatMap { it.workItems }.findRecursive(parentId)
         
-        require(parent is CompositeWorkItem) { "Subtasks can only be added to CompositeWorkItem" }
+        require(parent is CompositeWorkItem) { "Subtasks can only be added to CompositeWorkItem types" }
         
-        assignId(item)
+        if (item.id == 0L) setId(item, idGenerator.incrementAndGet())
         parent.addSubTask(item)
         _disciplines.value = current.toList()
-    }
-
-    private fun assignId(item: WorkItem) {
-        try {
-            val field = WorkItem::class.java.getDeclaredField("id")
-            field.isAccessible = true
-            if (field.get(item) == 0L) {
-                field.set(item, idGenerator.incrementAndGet())
-            }
-        } catch (_: Exception) {}
+        return item
     }
 
     override suspend fun updateWorkItem(item: WorkItem) {
+        // Domain objects are modified, but we need to notify listeners
         _disciplines.value = _disciplines.value.toList()
     }
 
@@ -127,13 +119,33 @@ class InMemoryTaskRepository : TaskRepository {
 
     override suspend fun changeWorkItemStatus(id: Long, status: WorkStatus) {
         val item = _disciplines.value.flatMap { it.workItems }.findRecursive(id)
-        if (item != null) {
-            try {
-                val field = WorkItem::class.java.getDeclaredField("status")
-                field.isAccessible = true
-                field.set(item, status)
-                _disciplines.value = _disciplines.value.toList()
-            } catch (_: Exception) {}
+        item?.let {
+            setStatus(it, status)
+            _disciplines.value = _disciplines.value.toList()
         }
+    }
+
+    private fun setId(obj: Any, id: Long) {
+        var current: Class<*>? = obj.javaClass
+        while (current != null) {
+            try {
+                val field = current.getDeclaredField("id")
+                field.isAccessible = true
+                field.set(obj, id)
+                return
+            } catch (_: NoSuchFieldException) {
+                current = current.superclass
+            } catch (_: Exception) {
+                break
+            }
+        }
+    }
+
+    private fun setStatus(item: WorkItem, status: WorkStatus) {
+        try {
+            val field = WorkItem::class.java.getDeclaredField("status")
+            field.isAccessible = true
+            field.set(item, status)
+        } catch (_: Exception) {}
     }
 }

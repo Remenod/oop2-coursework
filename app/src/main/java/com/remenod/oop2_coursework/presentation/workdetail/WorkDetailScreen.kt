@@ -22,11 +22,13 @@ import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditDialog
 @Composable
 fun WorkDetailScreen(
     viewModel: WorkDetailViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSubTaskClick: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
+    var showReadingProgressDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -93,16 +95,8 @@ fun WorkDetailScreen(
 
                 if (item.typeName == "ReadingTask") {
                     item {
-                        Column {
-                            Text("Update Reading Progress", style = MaterialTheme.typography.titleSmall)
-                            // Simplified: show buttons to increment/decrement for demo
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { 
-                                    // Normally we'd have a text field, but let's do simple increment
-                                    // Actually, we should probably have a real edit in the dialog.
-                                    // For now, let's just show it.
-                                }) { Text("Update Pages") }
-                            }
+                        Button(onClick = { showReadingProgressDialog = true }) {
+                            Text("Update Reading Progress")
                         }
                     }
                 }
@@ -119,9 +113,7 @@ fun WorkDetailScreen(
                     items(item.subTasks) { subTask ->
                         OutlinedCard(
                             modifier = Modifier.fillMaxWidth().clickable { 
-                                // In a real app, navigate to this child's detail
-                                // But AppNavHost needs the child detail screen to be registered.
-                                // It is registered!
+                                onSubTaskClick(subTask.id)
                             }
                         ) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -168,6 +160,28 @@ fun WorkDetailScreen(
             onDismiss = { showAddSubTaskDialog = false },
             onConfirm = { title, desc, type, priority, pages ->
                 viewModel.addSubTask(title, desc, type, priority, pages)
+            }
+        )
+    }
+
+    if (showReadingProgressDialog && uiState.item != null) {
+        var pages by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showReadingProgressDialog = false },
+            title = { Text("Update Progress") },
+            text = {
+                OutlinedTextField(
+                    value = pages,
+                    onValueChange = { pages = it },
+                    label = { Text("Pages Read") }
+                )
+            },
+            confirmButton = {
+                Button(onClick = { 
+                    val p = pages.toIntOrNull() ?: 0
+                    viewModel.updateReadingProgress(p, 100)
+                    showReadingProgressDialog = false
+                }) { Text("Save") }
             }
         )
     }

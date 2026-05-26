@@ -10,12 +10,12 @@ interface TaskRepository {
     fun observeDiscipline(id: Long): Flow<Discipline?>
     fun observeWorkItem(id: Long): Flow<WorkItem?>
 
-    suspend fun addDiscipline(discipline: Discipline)
+    suspend fun addDiscipline(discipline: Discipline): Discipline
     suspend fun updateDiscipline(discipline: Discipline)
     suspend fun deleteDiscipline(id: Long)
 
-    suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem)
-    suspend fun addSubTask(parentId: Long, item: WorkItem)
+    suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem): WorkItem
+    suspend fun addSubTask(parentId: Long, item: WorkItem): WorkItem
 
     suspend fun updateWorkItem(item: WorkItem)
     suspend fun deleteWorkItem(id: Long)
