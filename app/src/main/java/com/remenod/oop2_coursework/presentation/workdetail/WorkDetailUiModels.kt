@@ -29,7 +29,9 @@ data class WorkItemDetailUiModel(
     
     // Programming
     val commitsCount: Int? = null,
+    val requiredCommits: Int? = null,
     val issuesResolved: Int? = null,
+    val requiredIssues: Int? = null,
     val testsPassed: Double? = null,
     
     // Exam
@@ -43,6 +45,7 @@ data class WorkItemDetailUiModel(
 )
 
 data class ChecklistUiModel(
+    val index: Int,
     val text: String,
     val isCompleted: Boolean
 )
