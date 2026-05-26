@@ -34,7 +34,11 @@ data class WorkItemRecord(
     val estimatedMinutes: Int,
 
     // Programming specialized fields
+    val repositoryUrl: String? = null,
+    val branch: String? = null,
+    val requiredCommits: Int? = null,
     val commitCount: Int? = null,
+    val requiredClosedIssues: Int? = null,
     val closedIssues: Int? = null,
     val testsPassed: Double? = null,
 
@@ -44,6 +48,7 @@ data class WorkItemRecord(
 
     // Seminar specialized fields
     val seminarTopic: String? = null,
+    val presentationRequired: Boolean? = null,
     val topicSelected: Boolean? = null,
     val materialsCollected: Boolean? = null,
     val speechPrepared: Boolean? = null,
@@ -51,7 +56,10 @@ data class WorkItemRecord(
     val rehearsalDone: Boolean? = null,
 
     // Project specialized fields
-    val projectGoal: String? = null
+    val projectGoal: String? = null,
+
+    // Exam specialized fields
+    val targetGrade: Int? = null
 )
 
 data class ChecklistItemRecord(
@@ -74,8 +82,8 @@ data class AttachmentRecord(
     val id: Long,
     val workItemId: Long,
     val name: String,
-    val type: String, // "LINK" or "RESOURCE"
-    val subType: String, // "GITHUB", "GOOGLE_CLASSROOM", "LOCAL", "CLOUD"
+    val type: AttachmentType,
+    val subType: AttachmentSubtype,
     val urlOrPath: String,
     val provider: String? = null,
     val createdAt: LocalDateTime
