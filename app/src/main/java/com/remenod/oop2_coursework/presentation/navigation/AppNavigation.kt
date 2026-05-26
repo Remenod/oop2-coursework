@@ -59,7 +59,8 @@ fun AppNavHost(appContainer: AppContainer) {
                 )
                 WorkDetailScreen(
                     viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onSubTaskClick = { id -> navController.navigate("workDetail/$id") }
                 )
             }
         )
