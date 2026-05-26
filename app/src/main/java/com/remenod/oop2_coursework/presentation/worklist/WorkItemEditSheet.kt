@@ -26,7 +26,7 @@ fun WorkItemEditSheet(
         description: String,
         type: WorkItemType,
         priority: Priority,
-        totalPages: Int?
+        initialData: Map<String, Any> // Extension: more flexible initial data
     ) -> Unit
 ) {
     var title by rememberSaveable { mutableStateOf(initialTitle) }
@@ -34,6 +34,11 @@ fun WorkItemEditSheet(
     var selectedType by rememberSaveable { mutableStateOf(initialType) }
     var selectedPriority by rememberSaveable { mutableStateOf(initialPriority) }
     var totalPages by rememberSaveable { mutableStateOf(initialTotalPages.toString()) }
+    
+    // Programming specific initial data
+    var commits by rememberSaveable { mutableStateOf("0") }
+    var issues by rememberSaveable { mutableStateOf("0") }
+    var tests by rememberSaveable { mutableStateOf("0") }
 
     val isValid = title.isNotBlank() &&
             (selectedType != WorkItemType.READING || (totalPages.toIntOrNull() ?: 0) > 0)
@@ -77,11 +82,7 @@ fun WorkItemEditSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf(
-                        WorkItemType.GENERIC,
-                        WorkItemType.READING,
-                        WorkItemType.PROJECT
-                    ).forEach { type ->
+                    WorkItemType.entries.forEach { type ->
                         FilterChip(
                             selected = selectedType == type,
                             onClick = { selectedType = type },
@@ -108,6 +109,23 @@ fun WorkItemEditSheet(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+            
+            if (selectedType == WorkItemType.PROGRAMMING) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = commits,
+                        onValueChange = { commits = it.filter { c -> c.isDigit() } },
+                        label = { Text("Commits") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = issues,
+                        onValueChange = { issues = it.filter { c -> c.isDigit() } },
+                        label = { Text("Issues") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
             Text("Priority", style = MaterialTheme.typography.labelLarge)
 
@@ -116,7 +134,7 @@ fun WorkItemEditSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Priority.values().forEach { priority ->
+                Priority.entries.forEach { priority ->
                     FilterChip(
                         selected = selectedPriority == priority,
                         onClick = { selectedPriority = priority },
@@ -144,12 +162,21 @@ fun WorkItemEditSheet(
                 Button(
                     enabled = isValid,
                     onClick = {
+                        val initialData = mutableMapOf<String, Any>()
+                        if (selectedType == WorkItemType.READING) {
+                            initialData["totalPages"] = totalPages.toIntOrNull() ?: 100
+                        } else if (selectedType == WorkItemType.PROGRAMMING) {
+                            initialData["commitsCount"] = commits.toIntOrNull() ?: 0
+                            initialData["issuesResolved"] = issues.toIntOrNull() ?: 0
+                            initialData["testsPassed"] = (tests.toDoubleOrNull() ?: 0.0) / 100.0
+                        }
+
                         onConfirm(
                             title.trim(),
                             description.trim(),
                             selectedType,
                             selectedPriority,
-                            totalPages.toIntOrNull()
+                            initialData
                         )
                         onDismiss()
                     }

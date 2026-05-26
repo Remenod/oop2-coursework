@@ -28,7 +28,6 @@ fun WorkDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
-    var showReadingProgressDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -93,40 +92,56 @@ fun WorkDetailScreen(
                     Text(text = item.progressExplanation, style = MaterialTheme.typography.bodySmall)
                 }
 
-                if (item.type == WorkItemType.READING) {
-                    item {
-                        Button(onClick = { showReadingProgressDialog = true }) {
-                            Text("Update Reading Progress")
+                // Type-Specific Sections
+                when (item.type) {
+                    WorkItemType.READING -> item {
+                        ReadingTaskSection(item, viewModel)
+                    }
+                    WorkItemType.PROGRAMMING -> item {
+                        ProgrammingTaskSection(item, viewModel)
+                    }
+                    WorkItemType.EXAM -> {
+                        item {
+                            Text(text = "Topics", style = MaterialTheme.typography.titleMedium)
+                        }
+                        items(item.examTopics) { topic ->
+                            ExamTopicItem(topic, onUpdate = { c -> viewModel.updateExamTopic(topic.index, c) }, onRemove = { viewModel.removeExamTopic(topic.index) })
+                        }
+                        item {
+                            AddTopicSection(onAdd = { n, c -> viewModel.addExamTopic(n, c) })
                         }
                     }
-                }
-
-                if (item.subTasks.isNotEmpty() || item.type == WorkItemType.PROJECT) {
-                    item {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "Sub-tasks", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            IconButton(onClick = { showAddSubTaskDialog = true }) {
-                                Icon(Icons.Default.Add, contentDescription = "Add Sub-task")
-                            }
-                        }
+                    WorkItemType.SEMINAR -> item {
+                        SeminarTaskSection(item.seminarStages, viewModel)
                     }
-                    items(item.subTasks) { subTask ->
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth().clickable { 
-                                onSubTaskClick(subTask.id)
-                            }
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = subTask.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                    Text(text = "${(subTask.progress * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
-                                }
-                                if (subTask.isDone) {
-                                    Text("✅")
+                    WorkItemType.PROJECT -> {
+                        item {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "Sub-tasks", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { showAddSubTaskDialog = true }) {
+                                    Icon(Icons.Default.Add, contentDescription = "Add Sub-task")
                                 }
                             }
                         }
+                        items(item.subTasks) { subTask ->
+                            OutlinedCard(
+                                modifier = Modifier.fillMaxWidth().clickable { 
+                                    onSubTaskClick(subTask.id)
+                                }
+                            ) {
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(text = subTask.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                        Text(text = "${(subTask.progress * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    if (subTask.isDone) {
+                                        Text("✅")
+                                    }
+                                }
+                            }
+                        }
                     }
+                    WorkItemType.GENERIC -> {}
                 }
 
                 item {
@@ -159,51 +174,131 @@ fun WorkDetailScreen(
     if (showAddSubTaskDialog) {
         WorkItemEditSheet(
             onDismiss = { showAddSubTaskDialog = false },
-            onConfirm = { title, desc, type, priority, pages ->
-                viewModel.addSubTask(title, desc, type, priority, pages)
+            onConfirm = { title, desc, type, priority, initialData ->
+                viewModel.addSubTask(title, desc, type, priority, initialData)
             }
         )
     }
+}
 
-    if (showReadingProgressDialog && uiState.item != null) {
-        val currentRead = uiState.item!!.readPages ?: 0
-        val currentTotal = uiState.item!!.totalPages ?: 100
-        
-        var pagesRead by remember { mutableStateOf(currentRead.toString()) }
-        var totalPages by remember { mutableStateOf(currentTotal.toString()) }
-        
+@Composable
+fun ReadingTaskSection(item: WorkItemDetailUiModel, viewModel: WorkDetailViewModel) {
+    var showDialog by remember { mutableStateOf(false) }
+    
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Reading Progress", style = MaterialTheme.typography.titleSmall)
+            Text("Pages: ${item.readPages} / ${item.totalPages}", style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = { showDialog = true }, modifier = Modifier.padding(top = 8.dp)) {
+                Text("Update Pages")
+            }
+        }
+    }
+
+    if (showDialog) {
+        var read by remember { mutableStateOf(item.readPages.toString()) }
+        var total by remember { mutableStateOf(item.totalPages.toString()) }
         AlertDialog(
-            onDismissRequest = { showReadingProgressDialog = false },
-            title = { Text("Update Progress") },
+            onDismissRequest = { showDialog = false },
+            title = { Text("Update Reading") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = pagesRead,
-                        onValueChange = { pagesRead = it.filter { c -> c.isDigit() } },
-                        label = { Text("Pages Read") }
-                    )
-                    OutlinedTextField(
-                        value = totalPages,
-                        onValueChange = { totalPages = it.filter { c -> c.isDigit() } },
-                        label = { Text("Total Pages") }
-                    )
+                    OutlinedTextField(value = read, onValueChange = { read = it.filter { c -> c.isDigit() } }, label = { Text("Read") })
+                    OutlinedTextField(value = total, onValueChange = { total = it.filter { c -> c.isDigit() } }, label = { Text("Total") })
                 }
             },
             confirmButton = {
-                val r = pagesRead.toIntOrNull() ?: 0
-                val t = totalPages.toIntOrNull() ?: 0
-                Button(
-                    enabled = t > 0 && r >= 0 && r <= t,
-                    onClick = { 
-                        viewModel.updateReadingProgress(r, t)
-                        showReadingProgressDialog = false
-                    }
-                ) { Text("Save") }
+                val r = read.toIntOrNull() ?: 0
+                val t = total.toIntOrNull() ?: 0
+                Button(enabled = t > 0 && r >= 0 && r <= t, onClick = { 
+                    viewModel.updateReadingProgress(r, t)
+                    showDialog = false
+                }) { Text("Save") }
             },
-            dismissButton = {
-                TextButton(onClick = { showReadingProgressDialog = false }) { Text("Cancel") }
-            }
+            dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancel") } }
         )
+    }
+}
+
+@Composable
+fun ProgrammingTaskSection(item: WorkItemDetailUiModel, viewModel: WorkDetailViewModel) {
+    var commits by remember { mutableStateOf(item.commitsCount?.toString() ?: "0") }
+    var issues by remember { mutableStateOf(item.issuesResolved?.toString() ?: "0") }
+    var tests by remember { mutableFloatStateOf(item.testsPassed?.toFloat() ?: 0f) }
+
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Programming Stats", style = MaterialTheme.typography.titleSmall)
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
+            }
+            
+            Text("Tests Passed: ${(tests * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
+            Slider(value = tests, onValueChange = { tests = it })
+            
+            Button(onClick = { 
+                viewModel.updateProgrammingStats(commits.toIntOrNull() ?: 0, issues.toIntOrNull() ?: 0, tests.toDouble())
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Update Stats")
+            }
+        }
+    }
+}
+
+@Composable
+fun ExamTopicItem(topic: ExamTopicUiModel, onUpdate: (Int) -> Unit, onRemove: () -> Unit) {
+    var confidence by remember { mutableFloatStateOf(topic.confidence.toFloat()) }
+    
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = topic.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                IconButton(onClick = onRemove) { Icon(Icons.Default.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error) }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Slider(value = confidence, onValueChange = { confidence = it }, onValueChangeFinished = { onUpdate(confidence.toInt()) }, valueRange = 0f..100f, modifier = Modifier.weight(1f))
+                Text(text = "${confidence.toInt()}%", modifier = Modifier.width(48.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun AddTopicSection(onAdd: (String, Int) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("New Topic") }, modifier = Modifier.weight(1f))
+        Button(onClick = { 
+            if (name.isNotBlank()) {
+                onAdd(name, 50)
+                name = ""
+            }
+        }) { Text("Add") }
+    }
+}
+
+@Composable
+fun SeminarTaskSection(stages: SeminarStagesUiModel?, viewModel: WorkDetailViewModel) {
+    if (stages == null) return
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Preparation Stages", style = MaterialTheme.typography.titleSmall)
+            SeminarStageRow("Topic Selected", stages.topicSelected) { viewModel.toggleSeminarStage(SeminarStageType.TOPIC_SELECTED) }
+            SeminarStageRow("Materials Collected", stages.materialsCollected) { viewModel.toggleSeminarStage(SeminarStageType.MATERIALS_COLLECTED) }
+            SeminarStageRow("Speech Prepared", stages.speechPrepared) { viewModel.toggleSeminarStage(SeminarStageType.SPEECH_PREPARED) }
+            SeminarStageRow("Slides Prepared", stages.slidesPrepared) { viewModel.toggleSeminarStage(SeminarStageType.SLIDES_PREPARED) }
+            SeminarStageRow("Rehearsal Done", stages.rehearsalDone) { viewModel.toggleSeminarStage(SeminarStageType.REHEARSAL_DONE) }
+        }
+    }
+}
+
+@Composable
+fun SeminarStageRow(label: String, checked: Boolean, onToggle: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { onToggle() }) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Text(text = label)
     }
 }
 

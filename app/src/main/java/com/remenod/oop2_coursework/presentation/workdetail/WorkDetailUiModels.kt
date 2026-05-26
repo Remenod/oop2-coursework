@@ -22,8 +22,22 @@ data class WorkItemDetailUiModel(
     val progressPercent: Double,
     val progressExplanation: String,
     val canBeCompleted: Boolean,
+    
+    // Reading
     val readPages: Int? = null,
     val totalPages: Int? = null,
+    
+    // Programming
+    val commitsCount: Int? = null,
+    val issuesResolved: Int? = null,
+    val testsPassed: Double? = null,
+    
+    // Exam
+    val examTopics: List<ExamTopicUiModel> = emptyList(),
+    
+    // Seminar
+    val seminarStages: SeminarStagesUiModel? = null,
+    
     val checklist: List<ChecklistUiModel> = emptyList(),
     val subTasks: List<SubTaskUiModel> = emptyList()
 )
@@ -38,4 +52,18 @@ data class SubTaskUiModel(
     val title: String,
     val progress: Double,
     val isDone: Boolean
+)
+
+data class ExamTopicUiModel(
+    val index: Int,
+    val name: String,
+    val confidence: Int
+)
+
+data class SeminarStagesUiModel(
+    val topicSelected: Boolean,
+    val materialsCollected: Boolean,
+    val speechPrepared: Boolean,
+    val slidesPrepared: Boolean,
+    val rehearsalDone: Boolean
 )
