@@ -20,30 +20,30 @@ abstract class AtomicWorkItem(
     fun addChecklistItem(text: String) {
         if (text.isBlank()) return
         _checklist.add(ChecklistItem(text.trim()))
-        this.updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun addChecklistItem(item: ChecklistItem) {
         _checklist.add(item)
-        this.updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun updateChecklistItem(index: Int, text: String) {
         if (index !in _checklist.indices || text.isBlank()) return
         _checklist[index] = _checklist[index].copy(text = text.trim())
-        this.updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun setChecklistItemCompleted(index: Int, completed: Boolean) {
         if (index !in _checklist.indices) return
         _checklist[index].isCompleted = completed
-        this.updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun removeChecklistItem(index: Int) {
         if (index !in _checklist.indices) return
         _checklist.removeAt(index)
-        this.updatedAt = LocalDateTime.now()
+        touch()
     }
 
     protected fun getChecklistProgress(): Double {
@@ -81,9 +81,11 @@ abstract class CompositeWorkItem(
 
     fun addSubTask(item: WorkItem) {
         _subTasks.add(item)
+        touch()
     }
 
     fun removeSubTask(item: WorkItem) {
         _subTasks.remove(item)
+        touch()
     }
 }
