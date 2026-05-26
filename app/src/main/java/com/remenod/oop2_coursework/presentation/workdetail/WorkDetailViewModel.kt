@@ -4,20 +4,28 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
+import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
+import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 class WorkDetailViewModel(
     private val repository: TaskRepository,
     private val workItemId: Long
 ) : ViewModel() {
 
+    private val _actionError = MutableStateFlow<String?>(null)
+
     val uiState: StateFlow<WorkDetailUiState> = repository.observeWorkItem(workItemId)
-        .map { item ->
+        .combine(_actionError) { item, actionError ->
             if (item == null) {
                 WorkDetailUiState(error = "Task not found")
             } else {
-                WorkDetailUiState(item = item.toDetailUiModel())
+                WorkDetailUiState(
+                    item = item.toDetailUiModel(),
+                    actionError = actionError
+                )
             }
         }
         .stateIn(
@@ -26,34 +34,48 @@ class WorkDetailViewModel(
             initialValue = WorkDetailUiState(isLoading = true)
         )
 
-    fun updateBasicInfo(title: String, description: String, priority: Priority) {
+    fun clearActionError() {
+        _actionError.value = null
+    }
+
+    fun updateMetadata(result: WorkItemEditResult) {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
-                item.title = title
-                item.description = description
-                item.priority = priority
-                repository.updateWorkItem(item)
+                try {
+                    item.updateMetadata(
+                        title = result.title,
+                        description = result.description,
+                        status = result.status,
+                        priority = result.priority,
+                        deadline = result.deadline,
+                        estimatedMinutes = result.estimatedMinutes
+                    )
+                    repository.updateWorkItem(item)
+                    _actionError.value = null
+                } catch (e: Exception) {
+                    _actionError.value = e.message ?: "Update failed"
+                }
             }
         }
     }
 
     fun updateReadingProgress(readPages: Int, totalPages: Int) {
-        if (totalPages <= 0 || readPages < 0 || readPages > totalPages) return
-
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ReadingTask) {
-                    item.readPages = readPages
-                    item.totalPages = totalPages
-                    repository.updateWorkItem(item)
+                    try {
+                        item.updatePages(readPages, totalPages)
+                        repository.updateWorkItem(item)
+                        _actionError.value = null
+                    } catch (e: Exception) {
+                        _actionError.value = e.message ?: "Update failed"
+                    }
                 }
             }
         }
     }
 
     fun updateProgrammingStats(commitsCount: Int, requiredCommits: Int, issuesResolved: Int, requiredIssues: Int, testsPassed: Double) {
-        if (commitsCount < 0 || requiredCommits < 0 || issuesResolved < 0 || requiredIssues < 0 || testsPassed !in 0.0..1.0) return
-
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ProgrammingTask) {
@@ -62,19 +84,21 @@ class WorkDetailViewModel(
                     item.issuesResolved = issuesResolved
                     item.requiredIssues = requiredIssues
                     item.testsPassed = testsPassed
+                    item.touch()
                     repository.updateWorkItem(item)
+                    _actionError.value = null
                 }
             }
         }
     }
 
     fun addExamTopic(name: String, confidence: Int) {
-        if (name.isBlank() || confidence !in 0..100) return
-
+        if (name.isBlank()) return
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask) {
                     item.topics.add(ExamTopic(name, confidence))
+                    item.touch()
                     repository.updateWorkItem(item)
                 }
             }
@@ -82,13 +106,12 @@ class WorkDetailViewModel(
     }
 
     fun updateExamTopic(index: Int, confidence: Int) {
-        if (confidence !in 0..100) return
-
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask && index in item.topics.indices) {
                     val topic = item.topics[index]
                     item.topics[index] = topic.copy(confidence = confidence)
+                    item.touch()
                     repository.updateWorkItem(item)
                 }
             }
@@ -100,6 +123,7 @@ class WorkDetailViewModel(
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask && index in item.topics.indices) {
                     item.topics.removeAt(index)
+                    item.touch()
                     repository.updateWorkItem(item)
                 }
             }
@@ -117,6 +141,7 @@ class WorkDetailViewModel(
                         SeminarStageType.SLIDES_PREPARED -> item.slidesPrepared = checked
                         SeminarStageType.REHEARSAL_DONE -> item.rehearsalDone = checked
                     }
+                    item.touch()
                     repository.updateWorkItem(item)
                 }
             }
@@ -160,40 +185,51 @@ class WorkDetailViewModel(
     fun toggleCompletion() {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
-                if (item.status == WorkStatus.DONE) {
-                    repository.changeWorkItemStatus(workItemId, WorkStatus.IN_PROGRESS)
-                } else {
-                    try {
+                try {
+                    if (item.status == WorkStatus.DONE) {
+                        item.changeStatus(WorkStatus.IN_PROGRESS)
+                    } else {
                         item.complete()
-                        repository.updateWorkItem(item)
-                    } catch (_: Exception) {}
+                    }
+                    repository.updateWorkItem(item)
+                    _actionError.value = null
+                } catch (e: Exception) {
+                    _actionError.value = e.message ?: "Completion toggle failed"
                 }
             }
         }
     }
 
-    fun addSubTask(title: String, description: String, type: WorkItemType, priority: Priority, initialData: Map<String, Any>) {
+    fun addSubTask(result: WorkItemEditResult) {
         viewModelScope.launch {
-            val item = when (type) {
-                WorkItemType.PROJECT -> ProjectTask(0, title, description)
+            val item = when (result.type) {
+                WorkItemType.PROJECT -> ProjectTask(0, result.title, result.description)
                 WorkItemType.READING -> ReadingTask(
                     id = 0,
-                    title = title,
-                    description = description,
-                    totalPages = initialData["totalPages"] as? Int ?: 100
+                    title = result.title,
+                    description = result.description,
+                    totalPages = result.totalPages ?: 100
                 )
                 WorkItemType.PROGRAMMING -> ProgrammingTask(
                     id = 0,
-                    title = title,
-                    description = description,
-                    commitsCount = initialData["commitsCount"] as? Int ?: 0,
-                    issuesResolved = initialData["issuesResolved"] as? Int ?: 0,
-                    testsPassed = initialData["testsPassed"] as? Double ?: 0.0
+                    title = result.title,
+                    description = result.description,
+                    commitsCount = result.commitsCount ?: 0,
+                    requiredCommits = result.requiredCommits ?: 5,
+                    issuesResolved = result.issuesResolved ?: 0,
+                    requiredIssues = result.requiredIssues ?: 2,
+                    testsPassed = result.testsPassed ?: 0.0
                 )
-                WorkItemType.EXAM -> ExamTask(0, title, description)
-                WorkItemType.SEMINAR -> SeminarTask(0, title, description)
-                else -> GenericTask(0, title, description)
-            }.apply { this.priority = priority }
+                WorkItemType.EXAM -> ExamTask(0, result.title, result.description)
+                WorkItemType.SEMINAR -> SeminarTask(0, result.title, result.description)
+                else -> GenericTask(0, result.title, result.description)
+            }.apply {
+                this.priority = result.priority
+                this.status = result.status
+                this.deadline = result.deadline
+                this.estimatedMinutes = result.estimatedMinutes
+                this.touch()
+            }
             
             repository.addSubTask(workItemId, item)
         }
@@ -224,10 +260,20 @@ class WorkDetailViewModel(
             priority = priority,
             type = type,
             typeName = this::class.simpleName ?: "Task",
-            deadline = deadline?.toString() ?: "No deadline",
+            
+            deadline = deadline,
+            deadlineText = DateTimeUiFormatter.formatDateTime(deadline),
+            createdAtText = DateTimeUiFormatter.formatDateTime(createdAt),
+            updatedAtText = DateTimeUiFormatter.formatDateTime(updatedAt),
+            estimatedMinutes = estimatedMinutes,
+            estimatedTimeText = DateTimeUiFormatter.estimatedTime(estimatedMinutes),
+            isOverdue = isOverdue(),
+            timeLeftText = DateTimeUiFormatter.timeLeft(deadline),
+
             progressPercent = snapshot.percent,
             progressExplanation = snapshot.explanation,
             canBeCompleted = canBeCompleted(),
+            
             readPages = (this as? ReadingTask)?.readPages,
             totalPages = (this as? ReadingTask)?.totalPages,
             commitsCount = (this as? ProgrammingTask)?.commitsCount,
@@ -235,6 +281,7 @@ class WorkDetailViewModel(
             issuesResolved = (this as? ProgrammingTask)?.issuesResolved,
             requiredIssues = (this as? ProgrammingTask)?.requiredIssues,
             testsPassed = (this as? ProgrammingTask)?.testsPassed,
+
             examTopics = (this as? ExamTask)?.topics?.mapIndexed { i, t ->
                 ExamTopicUiModel(i, t.name, t.confidence)
             } ?: emptyList(),

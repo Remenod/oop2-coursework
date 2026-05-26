@@ -78,7 +78,11 @@ fun WorkDetailScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             InfoRow("Status", item.status.name)
                             InfoRow("Priority", item.priority.name)
-                            InfoRow("Deadline", item.deadline)
+                            InfoRow("Deadline", item.deadlineText)
+                            InfoRow("Time Left", item.timeLeftText)
+                            InfoRow("Estimate", item.estimatedTimeText)
+                            InfoRow("Created", item.createdAtText)
+                            InfoRow("Updated", item.updatedAtText)
                             InfoRow("Type", item.typeName)
                         }
                     }
@@ -91,6 +95,17 @@ fun WorkDetailScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(text = item.progressExplanation, style = MaterialTheme.typography.bodySmall)
+                }
+
+                if (uiState.actionError != null) {
+                    item {
+                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
+                            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = uiState.actionError!!, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { viewModel.clearActionError() }) { Text("X") }
+                            }
+                        }
+                    }
                 }
 
                 if (item.type != WorkItemType.PROJECT) {
@@ -174,11 +189,14 @@ fun WorkDetailScreen(
             initialTitle = uiState.item!!.title,
             initialDescription = uiState.item!!.description,
             initialPriority = uiState.item!!.priority,
+            initialStatus = uiState.item!!.status,
+            initialDeadline = uiState.item!!.deadline,
+            initialEstimatedMinutes = uiState.item!!.estimatedMinutes,
             initialType = uiState.item!!.type,
             allowTypeChange = false,
             onDismiss = { showEditDialog = false },
-            onConfirm = { title, desc, _, priority, _ ->
-                viewModel.updateBasicInfo(title, desc, priority)
+            onConfirm = { result ->
+                viewModel.updateMetadata(result)
             }
         )
     }
@@ -186,8 +204,8 @@ fun WorkDetailScreen(
     if (showAddSubTaskDialog) {
         WorkItemEditSheet(
             onDismiss = { showAddSubTaskDialog = false },
-            onConfirm = { title, desc, type, priority, initialData ->
-                viewModel.addSubTask(title, desc, type, priority, initialData)
+            onConfirm = { result ->
+                viewModel.addSubTask(result)
             }
         )
     }

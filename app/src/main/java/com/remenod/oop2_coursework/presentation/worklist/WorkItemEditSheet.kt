@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.domain.model.*
+import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
+import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -17,30 +19,40 @@ fun WorkItemEditSheet(
     initialTitle: String = "",
     initialDescription: String = "",
     initialType: WorkItemType = WorkItemType.GENERIC,
+    initialStatus: WorkStatus = WorkStatus.CREATED,
     initialPriority: Priority = Priority.NORMAL,
+    initialDeadline: LocalDateTime? = null,
+    initialEstimatedMinutes: Int = 0,
     initialTotalPages: Int = 100,
+    initialCommits: Int = 0,
+    initialIssues: Int = 0,
+    initialTests: Double = 0.0,
     allowTypeChange: Boolean = true,
     onDismiss: () -> Unit,
-    onConfirm: (
-        title: String,
-        description: String,
-        type: WorkItemType,
-        priority: Priority,
-        initialData: Map<String, Any> // Extension: more flexible initial data
-    ) -> Unit
+    onConfirm: (WorkItemEditResult) -> Unit
 ) {
     var title by rememberSaveable { mutableStateOf(initialTitle) }
     var description by rememberSaveable { mutableStateOf(initialDescription) }
     var selectedType by rememberSaveable { mutableStateOf(initialType) }
+    var selectedStatus by rememberSaveable { mutableStateOf(initialStatus) }
     var selectedPriority by rememberSaveable { mutableStateOf(initialPriority) }
-    var totalPages by rememberSaveable { mutableStateOf(initialTotalPages.toString()) }
     
-    // Programming specific initial data
-    var commits by rememberSaveable { mutableStateOf("0") }
-    var issues by rememberSaveable { mutableStateOf("0") }
-    var tests by rememberSaveable { mutableStateOf("0") }
+    var deadlineInput by rememberSaveable { 
+        mutableStateOf(DateTimeUiFormatter.formatInput(initialDeadline)) 
+    }
+    var estimatedMinutes by rememberSaveable { 
+        mutableStateOf(initialEstimatedMinutes.toString()) 
+    }
 
-    val isValid = title.isNotBlank() &&
+    var totalPages by rememberSaveable { mutableStateOf(initialTotalPages.toString()) }
+    var commits by rememberSaveable { mutableStateOf(initialCommits.toString()) }
+    var issues by rememberSaveable { mutableStateOf(initialIssues.toString()) }
+
+    val parsedDeadline = DateTimeUiFormatter.parseInput(deadlineInput)
+    val deadlineValid = deadlineInput.isBlank() || parsedDeadline != null
+    val estimatedValid = (estimatedMinutes.toIntOrNull() ?: -1) >= 0
+
+    val isValid = title.isNotBlank() && deadlineValid && estimatedValid &&
             (selectedType != WorkItemType.READING || (totalPages.toIntOrNull() ?: 0) > 0)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -76,7 +88,6 @@ fun WorkItemEditSheet(
 
             if (allowTypeChange) {
                 Text("Type", style = MaterialTheme.typography.labelLarge)
-
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -86,49 +97,28 @@ fun WorkItemEditSheet(
                         FilterChip(
                             selected = selectedType == type,
                             onClick = { selectedType = type },
-                            label = {
-                                Text(
-                                    text = type.name,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            label = { Text(text = type.name, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         )
                     }
                 }
             }
 
-            if (selectedType == WorkItemType.READING) {
-                OutlinedTextField(
-                    value = totalPages,
-                    onValueChange = { value ->
-                        totalPages = value.filter { it.isDigit() }
-                    },
-                    label = { Text("Total pages") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            
-            if (selectedType == WorkItemType.PROGRAMMING) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = commits,
-                        onValueChange = { commits = it.filter { c -> c.isDigit() } },
-                        label = { Text("Commits") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = issues,
-                        onValueChange = { issues = it.filter { c -> c.isDigit() } },
-                        label = { Text("Issues") },
-                        modifier = Modifier.weight(1f)
+            Text("Status", style = MaterialTheme.typography.labelLarge)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                WorkStatus.entries.forEach { status ->
+                    FilterChip(
+                        selected = selectedStatus == status,
+                        onClick = { selectedStatus = status },
+                        label = { Text(text = status.name, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     )
                 }
             }
 
             Text("Priority", style = MaterialTheme.typography.labelLarge)
-
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -138,14 +128,61 @@ fun WorkItemEditSheet(
                     FilterChip(
                         selected = selectedPriority == priority,
                         onClick = { selectedPriority = priority },
-                        label = {
-                            Text(
-                                text = priority.name,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        label = { Text(text = priority.name, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     )
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = estimatedMinutes,
+                    onValueChange = { estimatedMinutes = it.filter { c -> c.isDigit() } },
+                    label = { Text("Estimate (min)") },
+                    modifier = Modifier.weight(1f),
+                    isError = !estimatedValid
+                )
+                OutlinedTextField(
+                    value = deadlineInput,
+                    onValueChange = { deadlineInput = it },
+                    label = { Text("Deadline (yyyy-MM-dd HH:mm)") },
+                    modifier = Modifier.weight(2f),
+                    isError = !deadlineValid,
+                    placeholder = { Text("Optional") }
+                )
+            }
+
+            // Quick Deadline Buttons
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val now = LocalDateTime.now()
+                DeadlineButton("None") { deadlineInput = "" }
+                DeadlineButton("Today") { 
+                    deadlineInput = DateTimeUiFormatter.formatInput(now.withHour(23).withMinute(59)) 
+                }
+                DeadlineButton("Tomorrow") { 
+                    deadlineInput = DateTimeUiFormatter.formatInput(now.plusDays(1).withHour(23).withMinute(59)) 
+                }
+                DeadlineButton("+7 Days") { 
+                    deadlineInput = DateTimeUiFormatter.formatInput(now.plusDays(7).withHour(23).withMinute(59)) 
+                }
+            }
+
+            // Type-specific minimal fields
+            if (selectedType == WorkItemType.READING) {
+                OutlinedTextField(
+                    value = totalPages,
+                    onValueChange = { totalPages = it.filter { c -> c.isDigit() } },
+                    label = { Text("Total Pages") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            
+            if (selectedType == WorkItemType.PROGRAMMING) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
                 }
             }
 
@@ -153,37 +190,33 @@ fun WorkItemEditSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-
+                TextButton(onClick = onDismiss) { Text("Cancel") }
                 Spacer(Modifier.width(8.dp))
-
                 Button(
                     enabled = isValid,
                     onClick = {
-                        val initialData = mutableMapOf<String, Any>()
-                        if (selectedType == WorkItemType.READING) {
-                            initialData["totalPages"] = totalPages.toIntOrNull() ?: 100
-                        } else if (selectedType == WorkItemType.PROGRAMMING) {
-                            initialData["commitsCount"] = commits.toIntOrNull() ?: 0
-                            initialData["issuesResolved"] = issues.toIntOrNull() ?: 0
-                            initialData["testsPassed"] = (tests.toDoubleOrNull() ?: 0.0) / 100.0
-                        }
-
-                        onConfirm(
-                            title.trim(),
-                            description.trim(),
-                            selectedType,
-                            selectedPriority,
-                            initialData
+                        val result = WorkItemEditResult(
+                            title = title.trim(),
+                            description = description.trim(),
+                            type = selectedType,
+                            status = selectedStatus,
+                            priority = selectedPriority,
+                            deadline = parsedDeadline,
+                            estimatedMinutes = estimatedMinutes.toIntOrNull() ?: 0,
+                            totalPages = totalPages.toIntOrNull(),
+                            commitsCount = commits.toIntOrNull(),
+                            testsPassed = initialTests // Keep tests for now
                         )
+                        onConfirm(result)
                         onDismiss()
                     }
-                ) {
-                    Text("Save")
-                }
+                ) { Text("Save") }
             }
         }
     }
+}
+
+@Composable
+fun DeadlineButton(label: String, onClick: () -> Unit) {
+    AssistChip(onClick = onClick, label = { Text(label) })
 }

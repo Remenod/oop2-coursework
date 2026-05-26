@@ -71,8 +71,8 @@ fun WorkListScreen(
     if (showAddDialog) {
         WorkItemEditSheet(
             onDismiss = { showAddDialog = false },
-            onConfirm = { title, description, type, priority, initialData ->
-                viewModel.addTask(title, description, type, priority, initialData)
+            onConfirm = { result ->
+                viewModel.addTask(result)
             }
         )
     }
@@ -96,18 +96,21 @@ fun WorkItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = item.typeLabel,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = item.typeLabel,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                    Text(text = item.status.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 }
                 
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     PriorityBadge(item.priority)
                     IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
@@ -142,14 +145,18 @@ fun WorkItemCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
-            if (item.isOverdue) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column {
+                Text(text = "Due: ${item.deadlineText}", style = MaterialTheme.typography.labelSmall)
                 Text(
-                    text = "OVERDUE",
-                    color = MaterialTheme.colorScheme.error,
+                    text = item.timeLeftText,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.ExtraBold
+                    color = if (item.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    fontWeight = if (item.isOverdue) FontWeight.Bold else FontWeight.Normal
                 )
+                Text(text = "Estimate: ${item.estimatedTimeText}", style = MaterialTheme.typography.labelSmall)
             }
         }
     }

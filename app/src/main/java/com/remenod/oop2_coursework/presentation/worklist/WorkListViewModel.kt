@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
+import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 class WorkListViewModel(
     private val repository: TaskRepository,
@@ -29,28 +31,36 @@ class WorkListViewModel(
             initialValue = WorkListUiState(isLoading = true)
         )
 
-    fun addTask(title: String, description: String, type: WorkItemType, priority: Priority, initialData: Map<String, Any>) {
+    fun addTask(result: WorkItemEditResult) {
         viewModelScope.launch {
-            val item = when (type) {
-                WorkItemType.PROJECT -> ProjectTask(0, title, description)
+            val item = when (result.type) {
+                WorkItemType.PROJECT -> ProjectTask(0, result.title, result.description)
                 WorkItemType.READING -> ReadingTask(
                     id = 0,
-                    title = title,
-                    description = description,
-                    totalPages = initialData["totalPages"] as? Int ?: 100
+                    title = result.title,
+                    description = result.description,
+                    totalPages = result.totalPages ?: 100
                 )
                 WorkItemType.PROGRAMMING -> ProgrammingTask(
                     id = 0,
-                    title = title,
-                    description = description,
-                    commitsCount = initialData["commitsCount"] as? Int ?: 0,
-                    issuesResolved = initialData["issuesResolved"] as? Int ?: 0,
-                    testsPassed = initialData["testsPassed"] as? Double ?: 0.0
+                    title = result.title,
+                    description = result.description,
+                    commitsCount = result.commitsCount ?: 0,
+                    requiredCommits = result.requiredCommits ?: 5,
+                    issuesResolved = result.issuesResolved ?: 0,
+                    requiredIssues = result.requiredIssues ?: 2,
+                    testsPassed = result.testsPassed ?: 0.0
                 )
-                WorkItemType.EXAM -> ExamTask(0, title, description)
-                WorkItemType.SEMINAR -> SeminarTask(0, title, description)
-                else -> GenericTask(0, title, description)
-            }.apply { this.priority = priority }
+                WorkItemType.EXAM -> ExamTask(0, result.title, result.description)
+                WorkItemType.SEMINAR -> SeminarTask(0, result.title, result.description)
+                else -> GenericTask(0, result.title, result.description)
+            }.apply {
+                this.priority = result.priority
+                this.status = result.status
+                this.deadline = result.deadline
+                this.estimatedMinutes = result.estimatedMinutes
+                this.touch()
+            }
             
             repository.addRootWorkItem(disciplineId, item)
         }
@@ -79,7 +89,10 @@ class WorkListViewModel(
             status = status,
             progressPercent = progress.percent,
             progressExplanation = progress.explanation,
-            isOverdue = isOverdue()
+            isOverdue = isOverdue(),
+            deadlineText = DateTimeUiFormatter.formatDateTime(deadline),
+            timeLeftText = DateTimeUiFormatter.timeLeft(deadline),
+            estimatedTimeText = DateTimeUiFormatter.estimatedTime(estimatedMinutes)
         )
     }
 }
