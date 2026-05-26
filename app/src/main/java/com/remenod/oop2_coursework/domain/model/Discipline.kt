@@ -39,7 +39,11 @@ class Discipline(
         return _workItems.map { it.getProgress() }.average()
     }
 
+    fun getAllWorkItemsRecursive(): List<WorkItem> {
+        return _workItems.flatMap { it.flatten() }
+    }
+
     fun getOverdueItems(now: LocalDateTime = LocalDateTime.now()): List<WorkItem> {
-        return _workItems.filter { it.isOverdue(now) }
+        return getAllWorkItemsRecursive().filter { it.isOverdue(now) }
     }
 }
