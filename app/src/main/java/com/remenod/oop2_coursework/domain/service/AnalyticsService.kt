@@ -3,7 +3,6 @@ package com.remenod.oop2_coursework.domain.service
 import com.remenod.oop2_coursework.domain.model.*
 import java.time.Duration
 import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 
 class AnalyticsService {
 
