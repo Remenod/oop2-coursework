@@ -157,12 +157,4 @@ class InMemoryTaskRepository : TaskRepository {
             }
         }
     }
-
-    private fun setStatus(item: WorkItem, status: WorkStatus) {
-        try {
-            val field = WorkItem::class.java.getDeclaredField("status")
-            field.isAccessible = true
-            field.set(item, status)
-        } catch (_: Exception) {}
-    }
 }
