@@ -51,14 +51,16 @@ class WorkDetailViewModel(
         }
     }
 
-    fun updateProgrammingStats(commitsCount: Int, issuesResolved: Int, testsPassed: Double) {
-        if (commitsCount < 0 || issuesResolved < 0 || testsPassed !in 0.0..1.0) return
+    fun updateProgrammingStats(commitsCount: Int, requiredCommits: Int, issuesResolved: Int, requiredIssues: Int, testsPassed: Double) {
+        if (commitsCount < 0 || requiredCommits < 0 || issuesResolved < 0 || requiredIssues < 0 || testsPassed !in 0.0..1.0) return
 
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ProgrammingTask) {
                     item.commitsCount = commitsCount
+                    item.requiredCommits = requiredCommits
                     item.issuesResolved = issuesResolved
+                    item.requiredIssues = requiredIssues
                     item.testsPassed = testsPassed
                     repository.updateWorkItem(item)
                 }
@@ -104,18 +106,67 @@ class WorkDetailViewModel(
         }
     }
 
-    fun toggleSeminarStage(stage: SeminarStageType) {
+    fun setSeminarStage(stage: SeminarStageType, checked: Boolean) {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is SeminarTask) {
                     when (stage) {
-                        SeminarStageType.TOPIC_SELECTED -> item.topicSelected = !item.topicSelected
-                        SeminarStageType.MATERIALS_COLLECTED -> item.materialsCollected = !item.materialsCollected
-                        SeminarStageType.SPEECH_PREPARED -> item.speechPrepared = !item.speechPrepared
-                        SeminarStageType.SLIDES_PREPARED -> item.slidesPrepared = !item.slidesPrepared
-                        SeminarStageType.REHEARSAL_DONE -> item.rehearsalDone = !item.rehearsalDone
+                        SeminarStageType.TOPIC_SELECTED -> item.topicSelected = checked
+                        SeminarStageType.MATERIALS_COLLECTED -> item.materialsCollected = checked
+                        SeminarStageType.SPEECH_PREPARED -> item.speechPrepared = checked
+                        SeminarStageType.SLIDES_PREPARED -> item.slidesPrepared = checked
+                        SeminarStageType.REHEARSAL_DONE -> item.rehearsalDone = checked
                     }
                     repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun addChecklistItem(text: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is AtomicWorkItem) {
+                    item.addChecklistItem(text)
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun setChecklistItemCompleted(index: Int, completed: Boolean) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is AtomicWorkItem) {
+                    item.setChecklistItemCompleted(index, completed)
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun removeChecklistItem(index: Int) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is AtomicWorkItem) {
+                    item.removeChecklistItem(index)
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun toggleCompletion() {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item.status == WorkStatus.DONE) {
+                    repository.changeWorkItemStatus(workItemId, WorkStatus.IN_PROGRESS)
+                } else {
+                    try {
+                        item.complete()
+                        repository.updateWorkItem(item)
+                    } catch (_: Exception) {}
                 }
             }
         }
@@ -154,17 +205,6 @@ class WorkDetailViewModel(
         }
     }
 
-    fun completeTask() {
-        viewModelScope.launch {
-            repository.observeWorkItem(workItemId).first()?.let { item ->
-                try {
-                    item.complete()
-                    repository.updateWorkItem(item)
-                } catch (_: Exception) {}
-            }
-        }
-    }
-
     private fun WorkItem.toDetailUiModel(): WorkItemDetailUiModel {
         val snapshot = getProgressSnapshot()
         val type = when (this) {
@@ -191,7 +231,9 @@ class WorkDetailViewModel(
             readPages = (this as? ReadingTask)?.readPages,
             totalPages = (this as? ReadingTask)?.totalPages,
             commitsCount = (this as? ProgrammingTask)?.commitsCount,
+            requiredCommits = (this as? ProgrammingTask)?.requiredCommits,
             issuesResolved = (this as? ProgrammingTask)?.issuesResolved,
+            requiredIssues = (this as? ProgrammingTask)?.requiredIssues,
             testsPassed = (this as? ProgrammingTask)?.testsPassed,
             examTopics = (this as? ExamTask)?.topics?.mapIndexed { i, t ->
                 ExamTopicUiModel(i, t.name, t.confidence)
@@ -202,7 +244,9 @@ class WorkDetailViewModel(
                 )
             },
             checklist = if (this is AtomicWorkItem) {
-                checklist.map { ChecklistUiModel(it.text, it.isCompleted) }
+                checklist.mapIndexed { index, item ->
+                    ChecklistUiModel(index, item.text, item.isCompleted)
+                }
             } else emptyList(),
             subTasks = if (this is CompositeWorkItem) {
                 subTasks.map { SubTaskUiModel(it.id, it.title, it.getProgress(), it.status == WorkStatus.DONE) }
