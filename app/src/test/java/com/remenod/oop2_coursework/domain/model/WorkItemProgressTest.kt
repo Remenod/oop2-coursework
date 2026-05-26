@@ -6,14 +6,14 @@ import org.junit.Test
 class WorkItemProgressTest {
 
     @Test
-    fun testProgrammingTaskProgress() {
-        val task = ProgrammingTask(1L, "Test", "Desc", commitsCount = 5, issuesResolved = 2, testsPassed = 1.0)
-        // checklist: 100% (empty), weight 0.4 -> 0.4
-        // commits: 100% (5/5), weight 0.25 -> 0.25
-        // issues: 100% (2/2), weight 0.25 -> 0.25
-        // tests: 100% (1.0), weight 0.1 -> 0.1
-        // Total: 1.0
-        assertEquals(1.0, task.getProgress(), 0.01)
+    fun testProgrammingTaskProgressNormalization() {
+        // 3 active components (commits, issues, tests), each weight 0.25 -> total 0.75
+        // 5/5 commits = 1.0
+        // 0/2 issues = 0.0
+        // 0.0 tests = 0.0
+        // Progress = (1.0*0.25 + 0.0*0.25 + 0.0*0.25) / 0.75 = 0.333
+        val task = ProgrammingTask(1L, "Test", "Desc", commitsCount = 5, issuesResolved = 0, testsPassed = 0.0)
+        assertEquals(0.333, task.getProgress(), 0.01)
     }
 
     @Test
@@ -41,14 +41,22 @@ class WorkItemProgressTest {
     @Test
     fun testProjectTaskProgress() {
         val project = ProjectTask(1L, "Project", "Desc")
-        val sub1 = GenericTask(2L, "Sub 1", "Desc").apply { estimatedMinutes = 100 }
-        val sub2 = GenericTask(3L, "Sub 2", "Desc").apply { estimatedMinutes = 300 }
+        // GenericTask with no checklist and not DONE is 0%
+        val sub1 = GenericTask(2L, "Sub 1", "Desc").apply { 
+            status = WorkStatus.DONE 
+            estimatedMinutes = 100 
+        }
+        val sub2 = GenericTask(3L, "Sub 2", "Desc").apply { 
+            addChecklistItem("Task")
+            setChecklistItemCompleted(0, true)
+            estimatedMinutes = 300 
+        }
         
         project.addSubTask(sub1)
         project.addSubTask(sub2)
         
-        // sub1 progress 1.0 (empty checklist)
-        // sub2 progress 1.0 (empty checklist)
+        // sub1 is DONE -> 100%
+        // sub2 has 1/1 checklist -> 100%
         assertEquals(1.0, project.getProgress(), 0.01)
     }
 }
