@@ -86,12 +86,9 @@ object WorkItemPersistenceMapper {
                 bundleLogs.add(WorkLogEntryRecord(
                     id = it.id,
                     workItemId = item.id,
-                    timestamp = it.timestamp,
-                    minutesSpent = it.minutesSpent,
-                    oldStatus = it.oldStatus,
-                    newStatus = it.newStatus,
-                    progressPercent = it.progressPercent,
-                    comment = it.comment
+                    message = it.message,
+                    createdAt = it.createdAt,
+                    minutesSpent = it.minutesSpent
                 ))
             }
 
@@ -140,7 +137,7 @@ object WorkItemPersistenceMapper {
                     addAttachment(AttachmentPersistenceMapper.restore(it)) 
                 }
                 logsMap[record.id]?.forEach {
-                    addLog(WorkLogEntry(it.id, it.workItemId, it.timestamp, it.minutesSpent, it.oldStatus, it.newStatus, it.progressPercent, it.comment))
+                    addLog(WorkLogEntry(it.id, it.message, it.createdAt, it.minutesSpent))
                 }
             }
         }

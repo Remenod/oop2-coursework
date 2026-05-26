@@ -12,6 +12,7 @@ object AttachmentPersistenceMapper {
             is GoogleClassroomLink -> AttachmentSubtype.GOOGLE_CLASSROOM
             is LocalFileResource -> AttachmentSubtype.LOCAL_FILE
             is CloudFileResource -> AttachmentSubtype.CLOUD_FILE
+            is GenericWebLink -> AttachmentSubtype.UNKNOWN
             else -> AttachmentSubtype.UNKNOWN
         }
 
@@ -23,7 +24,7 @@ object AttachmentPersistenceMapper {
             subType = subType,
             urlOrPath = when (domain) {
                 is LinkAttachment -> domain.url
-                is ResourceAttachment -> domain.path
+                is ResourceAttachment -> domain.pathOrUrl
                 else -> ""
             },
             provider = (domain as? CloudFileResource)?.cloudProvider,
@@ -37,7 +38,7 @@ object AttachmentPersistenceMapper {
             AttachmentSubtype.GOOGLE_CLASSROOM -> GoogleClassroomLink(record.id, record.name, record.urlOrPath)
             AttachmentSubtype.LOCAL_FILE -> LocalFileResource(record.id, record.name, record.urlOrPath)
             AttachmentSubtype.CLOUD_FILE -> CloudFileResource(record.id, record.name, record.urlOrPath, record.provider ?: "Unknown")
-            AttachmentSubtype.UNKNOWN -> error("Cannot restore unknown attachment subtype")
+            AttachmentSubtype.UNKNOWN -> GenericWebLink(record.id, record.name, record.urlOrPath)
         }
     }
 }

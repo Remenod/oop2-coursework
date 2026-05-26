@@ -92,12 +92,9 @@ data class AttachmentRecord(
 data class WorkLogEntryRecord(
     val id: Long,
     val workItemId: Long,
-    val timestamp: LocalDateTime,
-    val minutesSpent: Int,
-    val oldStatus: WorkStatus,
-    val newStatus: WorkStatus,
-    val progressPercent: Double,
-    val comment: String
+    val message: String,
+    val createdAt: LocalDateTime,
+    val minutesSpent: Int
 )
 
 /**
