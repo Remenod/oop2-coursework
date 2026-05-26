@@ -2,6 +2,7 @@ package com.remenod.oop2_coursework.data.repository
 
 import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditResult
+import com.remenod.oop2_coursework.presentation.worklist.WorkItemFactory
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
