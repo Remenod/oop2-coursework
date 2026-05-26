@@ -17,12 +17,37 @@ abstract class AtomicWorkItem(
     private val _checklist = mutableListOf<ChecklistItem>()
     val checklist: List<ChecklistItem> get() = _checklist
 
+    fun addChecklistItem(text: String) {
+        if (text.isBlank()) return
+        _checklist.add(ChecklistItem(text.trim()))
+        this.updatedAt = LocalDateTime.now()
+    }
+
     fun addChecklistItem(item: ChecklistItem) {
         _checklist.add(item)
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    fun updateChecklistItem(index: Int, text: String) {
+        if (index !in _checklist.indices || text.isBlank()) return
+        _checklist[index] = _checklist[index].copy(text = text.trim())
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    fun setChecklistItemCompleted(index: Int, completed: Boolean) {
+        if (index !in _checklist.indices) return
+        _checklist[index].isCompleted = completed
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    fun removeChecklistItem(index: Int) {
+        if (index !in _checklist.indices) return
+        _checklist.removeAt(index)
+        this.updatedAt = LocalDateTime.now()
     }
 
     protected fun getChecklistProgress(): Double {
-        if (_checklist.isEmpty()) return 1.0
+        if (_checklist.isEmpty()) return 0.0
         val completed = _checklist.count { it.isCompleted }
         return completed.toDouble() / _checklist.size
     }
