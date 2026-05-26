@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class WorkListViewModel(
     private val repository: TaskRepository,
@@ -27,6 +28,24 @@ class WorkListViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = WorkListUiState(isLoading = true)
         )
+
+    fun addTask(title: String, description: String, type: WorkItemType, priority: Priority, totalPages: Int?) {
+        viewModelScope.launch {
+            val item = when (type) {
+                WorkItemType.PROJECT -> ProjectTask(0, title, description)
+                WorkItemType.READING -> ReadingTask(0, title, description, totalPages = totalPages ?: 100)
+                else -> GenericTask(0, title, description)
+            }.apply { this.priority = priority }
+            
+            repository.addRootWorkItem(disciplineId, item)
+        }
+    }
+
+    fun deleteTask(id: Long) {
+        viewModelScope.launch {
+            repository.deleteWorkItem(id)
+        }
+    }
 
     private fun WorkItem.toCardUiModel(): WorkItemCardUiModel {
         val progress = getProgressSnapshot()

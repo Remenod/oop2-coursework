@@ -6,10 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,6 +26,7 @@ fun WorkListScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -37,6 +38,11 @@ fun WorkListScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Task")
+            }
         }
     ) { padding ->
         if (uiState.isLoading) {
@@ -52,17 +58,31 @@ fun WorkListScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.items) { item ->
-                    WorkItemCard(item, onClick = { onWorkItemClick(item.id) })
+                    WorkItemCard(
+                        item = item, 
+                        onClick = { onWorkItemClick(item.id) },
+                        onDelete = { viewModel.deleteTask(item.id) }
+                    )
                 }
             }
         }
+    }
+
+    if (showAddDialog) {
+        WorkItemEditDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { title, description, type, priority, totalPages ->
+                viewModel.addTask(title, description, type, priority, totalPages)
+            }
+        )
     }
 }
 
 @Composable
 fun WorkItemCard(
     item: WorkItemCardUiModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -87,7 +107,12 @@ fun WorkItemCard(
                     )
                 }
                 
-                PriorityBadge(item.priority)
+                Row {
+                    PriorityBadge(item.priority)
+                    IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
