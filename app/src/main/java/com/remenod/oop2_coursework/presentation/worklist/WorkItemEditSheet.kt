@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,7 +32,9 @@ fun WorkItemEditSheet(
     initialEstimatedMinutes: Int = 0,
     initialTotalPages: Int = 100,
     initialCommits: Int = 0,
+    initialRequiredCommits: Int = 5,
     initialIssues: Int = 0,
+    initialRequiredIssues: Int = 2,
     initialTests: Double = 0.0,
     allowTypeChange: Boolean = true,
     onDismiss: () -> Unit,
@@ -43,7 +46,10 @@ fun WorkItemEditSheet(
     var selectedStatus by rememberSaveable { mutableStateOf(initialStatus) }
     var selectedPriority by rememberSaveable { mutableStateOf(initialPriority) }
     
-    var selectedDeadline by remember { mutableStateOf(initialDeadline) }
+    var deadlineInput by rememberSaveable { 
+        mutableStateOf(DateTimeUiFormatter.formatInput(initialDeadline)) 
+    }
+    
     var showDatePicker by remember { mutableStateOf(false) }
 
     var estimatedMinutes by rememberSaveable { 
@@ -52,11 +58,16 @@ fun WorkItemEditSheet(
 
     var totalPages by rememberSaveable { mutableStateOf(initialTotalPages.toString()) }
     var commits by rememberSaveable { mutableStateOf(initialCommits.toString()) }
+    var reqCommits by rememberSaveable { mutableStateOf(initialRequiredCommits.toString()) }
     var issues by rememberSaveable { mutableStateOf(initialIssues.toString()) }
+    var reqIssues by rememberSaveable { mutableStateOf(initialRequiredIssues.toString()) }
+    var tests by rememberSaveable { mutableFloatStateOf(initialTests.toFloat()) }
 
+    val deadlineValid = DateTimeUiFormatter.isValidInput(deadlineInput)
+    val parsedDeadline = DateTimeUiFormatter.parseInput(deadlineInput)
     val estimatedValid = (estimatedMinutes.toIntOrNull() ?: -1) >= 0
 
-    val isValid = title.isNotBlank() && estimatedValid &&
+    val isValid = title.isNotBlank() && deadlineValid && estimatedValid &&
             (selectedType != WorkItemType.READING || (totalPages.toIntOrNull() ?: 0) > 0)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -146,24 +157,19 @@ fun WorkItemEditSheet(
                     isError = !estimatedValid
                 )
                 
-                Box(modifier = Modifier.weight(2f)) {
-                    OutlinedTextField(
-                        value = if (selectedDeadline == null) "" else DateTimeUiFormatter.formatDateTime(selectedDeadline),
-                        onValueChange = { },
-                        label = { Text("Deadline") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("None") },
-                        trailingIcon = {
+                OutlinedTextField(
+                    value = deadlineInput,
+                    onValueChange = { deadlineInput = it },
+                    label = { Text("Deadline") },
+                    modifier = Modifier.weight(2f),
+                    isError = !deadlineValid,
+                    placeholder = { Text("yyyy-MM-dd HH:mm") },
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.CalendarToday, contentDescription = "Select date")
                         }
-                    )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable { showDatePicker = true }
-                    )
-                }
+                    }
+                )
             }
 
             // Quick Deadline Buttons
@@ -172,15 +178,15 @@ fun WorkItemEditSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val now = LocalDateTime.now()
-                DeadlineButton("None") { selectedDeadline = null }
+                DeadlineButton("None") { deadlineInput = "" }
                 DeadlineButton("Today") { 
-                    selectedDeadline = now.withHour(23).withMinute(59) 
+                    deadlineInput = DateTimeUiFormatter.formatInput(now.withHour(23).withMinute(59)) 
                 }
                 DeadlineButton("Tomorrow") { 
-                    selectedDeadline = now.plusDays(1).withHour(23).withMinute(59) 
+                    deadlineInput = DateTimeUiFormatter.formatInput(now.plusDays(1).withHour(23).withMinute(59)) 
                 }
                 DeadlineButton("+7 Days") { 
-                    selectedDeadline = now.plusDays(7).withHour(23).withMinute(59) 
+                    deadlineInput = DateTimeUiFormatter.formatInput(now.plusDays(7).withHour(23).withMinute(59)) 
                 }
             }
 
@@ -195,9 +201,18 @@ fun WorkItemEditSheet(
             }
             
             if (selectedType == WorkItemType.PROGRAMMING) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Targets", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = reqCommits, onValueChange = { reqCommits = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(value = reqIssues, onValueChange = { reqIssues = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
+                    }
+                    Text("Tests Passed: ${(tests * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
+                    Slider(value = tests, onValueChange = { tests = it })
                 }
             }
 
@@ -216,11 +231,14 @@ fun WorkItemEditSheet(
                             type = selectedType,
                             status = selectedStatus,
                             priority = selectedPriority,
-                            deadline = selectedDeadline,
+                            deadline = parsedDeadline,
                             estimatedMinutes = estimatedMinutes.toIntOrNull() ?: 0,
                             totalPages = totalPages.toIntOrNull(),
                             commitsCount = commits.toIntOrNull(),
-                            testsPassed = initialTests
+                            requiredCommits = reqCommits.toIntOrNull(),
+                            issuesResolved = issues.toIntOrNull(),
+                            requiredIssues = reqIssues.toIntOrNull(),
+                            testsPassed = tests.toDouble()
                         )
                         onConfirm(result)
                         onDismiss()
@@ -231,16 +249,15 @@ fun WorkItemEditSheet(
     }
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDeadline?.atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
-        )
+        val initialMillis = parsedDeadline?.atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         val date = LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault())
-                        selectedDeadline = date.withHour(23).withMinute(59)
+                        deadlineInput = DateTimeUiFormatter.formatInput(date.withHour(23).withMinute(59))
                     }
                     showDatePicker = false
                 }) { Text("OK") }

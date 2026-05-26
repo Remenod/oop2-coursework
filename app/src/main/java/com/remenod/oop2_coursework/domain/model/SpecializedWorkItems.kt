@@ -163,25 +163,27 @@ class ProjectTask(
 ) : CompositeWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        if (subTasks.isEmpty()) {
-            return ProgressSnapshot(0.0, "No sub-tasks")
+        val activeSubTasks = subTasks.filter { it.status != WorkStatus.CANCELLED }
+
+        if (activeSubTasks.isEmpty()) {
+            return ProgressSnapshot(0.0, "No active sub-tasks")
         }
         
-        val totalEstimated = subTasks.sumOf { it.estimatedMinutes.toDouble() }
+        val totalEstimated = activeSubTasks.sumOf { it.estimatedMinutes.toDouble() }
         val avgProgress = if (totalEstimated <= 0.0) {
-            subTasks.map { it.getProgress() }.average()
+            activeSubTasks.map { it.getProgress() }.average()
         } else {
-            subTasks.sumOf { it.getProgress() * (it.estimatedMinutes.toDouble() / totalEstimated) }
+            activeSubTasks.sumOf { it.getProgress() * (it.estimatedMinutes.toDouble() / totalEstimated) }
         }
         
-        val completed = subTasks.count { it.status == WorkStatus.DONE }
+        val completed = activeSubTasks.count { it.status == WorkStatus.DONE }
         return ProgressSnapshot(
             percent = avgProgress.coerceIn(0.0, 1.0),
-            explanation = "$completed/${subTasks.size} sub-tasks completed"
+            explanation = "$completed/${activeSubTasks.size} active sub-tasks completed"
         )
     }
 
     override fun validateCompletion(): Boolean {
-        return subTasks.isNotEmpty() && subTasks.all { it.status == WorkStatus.DONE }
+        return subTasks.isNotEmpty() && subTasks.all { it.status == WorkStatus.DONE || it.status == WorkStatus.CANCELLED }
     }
 }
