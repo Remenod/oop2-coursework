@@ -49,5 +49,19 @@ fun AppNavHost(appContainer: AppContainer) {
                 )
             }
         )
+        composable(
+            route = "workDetail/{workItemId}",
+            arguments = listOf(navArgument("workItemId") { type = NavType.LongType }),
+            content = { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getLong("workItemId") ?: 0L
+                val viewModel: WorkDetailViewModel = viewModel(
+                    factory = ViewModelFactory { WorkDetailViewModel(appContainer.repository, workItemId) }
+                )
+                WorkDetailScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        )
     }
 }
