@@ -1,7 +1,5 @@
 package com.remenod.oop2_coursework.domain.model
 
-import java.time.LocalDateTime
-
 class ProgrammingTask(
     id: Long,
     title: String,
@@ -114,9 +112,19 @@ class ReadingTask(
 ) : AtomicWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        if (totalPages == 0) return ProgressSnapshot(1.0, "No pages to read")
-        val percent = (readPages.toDouble() / totalPages).coerceAtMost(1.0)
-        return ProgressSnapshot(percent, "Read $readPages of $totalPages pages")
+        val safeTotal = totalPages.coerceAtLeast(1)
+        val safeRead = readPages.coerceIn(0, safeTotal)
+        val percent = safeRead.toDouble() / safeTotal
+        return ProgressSnapshot(percent, "Read $safeRead of $safeTotal pages")
+    }
+
+    fun updatePages(readPages: Int, totalPages: Int) {
+        require(totalPages > 0) { "Total pages must be positive" }
+        require(readPages in 0..totalPages) { "Read pages must be within 0 and total pages" }
+
+        this.readPages = readPages
+        this.totalPages = totalPages
+        touch()
     }
 
     override fun validateCompletion(): Boolean {
@@ -150,16 +158,22 @@ class ProjectTask(
 ) : CompositeWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
+        if (subTasks.isEmpty()) {
+            return ProgressSnapshot(0.0, "No sub-tasks")
+        }
         
         val totalEstimated = subTasks.sumOf { it.estimatedMinutes.toDouble() }
-        val avgProgress = if (totalEstimated == 0.0) {
+        val avgProgress = if (totalEstimated <= 0.0) {
             subTasks.map { it.getProgress() }.average()
         } else {
-            subTasks.sumOf { it.getProgress() * (it.estimatedMinutes / totalEstimated) }
+            subTasks.sumOf { it.getProgress() * (it.estimatedMinutes.toDouble() / totalEstimated) }
         }
         
         val completed = subTasks.count { it.status == WorkStatus.DONE }
-        return ProgressSnapshot(avgProgress, "$completed/${subTasks.size} sub-tasks completed")
+        return ProgressSnapshot(
+            percent = avgProgress.coerceIn(0.0, 1.0),
+            explanation = "$completed/${subTasks.size} sub-tasks completed"
+        )
     }
 
     override fun validateCompletion(): Boolean {
