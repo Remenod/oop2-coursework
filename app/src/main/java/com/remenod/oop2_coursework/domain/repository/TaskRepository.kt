@@ -1,10 +1,6 @@
 package com.remenod.oop2_coursework.domain.repository
 
-import com.remenod.oop2_coursework.domain.model.Attachment
-import com.remenod.oop2_coursework.domain.model.Discipline
-import com.remenod.oop2_coursework.domain.model.WorkItem
-import com.remenod.oop2_coursework.domain.model.WorkLogEntry
-import com.remenod.oop2_coursework.domain.model.WorkStatus
+import com.remenod.oop2_coursework.domain.model.*
 import kotlinx.coroutines.flow.Flow
 
 interface TaskRepository {
