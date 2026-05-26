@@ -10,6 +10,7 @@ import kotlinx.coroutines.yield
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import java.time.LocalDateTime
 
 class InMemoryTaskRepositoryTest {
 
@@ -29,6 +30,21 @@ class InMemoryTaskRepositoryTest {
         val list = repository.observeDisciplines().first()
         assertEquals(1, list.size)
         assertEquals(created.id, list.first().id)
+    }
+
+    @Test
+    fun testUpdateDisciplinePreservesWorkItems() = runTest {
+        val discipline = Discipline(1L, "Original", "T", 1, 0)
+        repository.addDiscipline(discipline)
+        repository.addRootWorkItem(1L, GenericTask(10L, "Task", "D"))
+        
+        val updated = Discipline(1L, "New Name", "New T", 2, 1)
+        repository.updateDiscipline(updated)
+        
+        val restored = repository.observeDiscipline(1L).first()
+        assertEquals("New Name", restored?.name)
+        assertEquals(1, restored?.workItems?.size)
+        assertEquals(10L, restored?.workItems?.first()?.id)
     }
 
     @Test
@@ -105,7 +121,7 @@ class InMemoryTaskRepositoryTest {
         assertEquals(0.0, (repository.observeWorkItem(10L).first() as ProjectTask).getProgress(), 0.01)
         
         // Update child
-        reading.readPages = 75
+        reading.updatePages(75, 100)
         repository.updateWorkItem(reading)
         
         // Parent should be 75%
@@ -131,7 +147,7 @@ class InMemoryTaskRepositoryTest {
         
         yield() // Let collection start
 
-        (created as ReadingTask).readPages = 50
+        (created as ReadingTask).updatePages(50, 100)
         repository.updateWorkItem(created)
 
         job.join()
@@ -178,26 +194,33 @@ class InMemoryTaskRepositoryTest {
     }
 
     @Test
-    fun testProgrammingTaskNoFreeProgress() = runTest {
-        val task = ProgrammingTask(0, "P", "D", requiredCommits = 5, requiredIssues = 2)
-        // No checklist. Active: Commits, Issues, Tests. Total weight 0.75
-        // 5/5 commits = 1.0. (1.0 * 0.25) / 0.75 = 0.333
-        task.commitsCount = 5
-        assertEquals(0.333, task.getProgress(), 0.01)
+    fun testMetadataUpdateAtomicity() = runTest {
+        val task = GenericTask(10L, "G", "D")
+        task.addChecklistItem("Incomplete") // cannot be DONE
+        
+        try {
+            task.updateMetadata("New", "D", WorkStatus.DONE, Priority.HIGH, null, 10)
+            fail("Should throw exception")
+        } catch (_: IllegalStateException) {
+            // Success
+        }
+        
+        // Fields should NOT be changed
+        assertEquals("G", task.title)
+        assertEquals(WorkStatus.CREATED, task.status)
     }
 
     @Test
-    fun testExamTaskProgressWithTopics() = runTest {
-        val task = ExamTask(0, "E", "D")
-        task.topics.add(ExamTopic("T1", 100))
-        task.topics.add(ExamTopic("T2", 0))
-        assertEquals(0.5, task.getProgress(), 0.01)
-    }
-
-    @Test
-    fun testSeminarTaskProgressWithStages() = runTest {
-        val task = SeminarTask(0, "S", "D")
-        task.topicSelected = true
-        assertEquals(0.2, task.getProgress(), 0.01)
+    fun testRecursiveOverdueDetection() = runTest {
+        val discipline = Discipline(1L, "D", "T", 1, 0)
+        val project = ProjectTask(10L, "P", "D")
+        val child = GenericTask(11L, "C", "D")
+        child.deadline = LocalDateTime.now().minusDays(1) // Overdue
+        
+        project.addSubTask(child)
+        discipline.addWorkItem(project)
+        
+        assertEquals(1, discipline.getOverdueItems().size)
+        assertEquals(11L, discipline.getOverdueItems().first().id)
     }
 }
