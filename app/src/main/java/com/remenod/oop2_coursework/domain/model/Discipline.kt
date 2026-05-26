@@ -35,8 +35,9 @@ class Discipline(
     }
 
     override fun getProgress(): Double {
-        if (_workItems.isEmpty()) return 1.0
-        return _workItems.map { it.getProgress() }.average()
+        val activeItems = _workItems.filter { it.status != WorkStatus.CANCELLED }
+        if (activeItems.isEmpty()) return 1.0
+        return activeItems.map { it.getProgress() }.average()
     }
 
     fun getAllWorkItemsRecursive(): List<WorkItem> {
