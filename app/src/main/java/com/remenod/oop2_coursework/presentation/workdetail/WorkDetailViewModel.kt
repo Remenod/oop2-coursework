@@ -6,6 +6,7 @@ import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
 import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditResult
+import com.remenod.oop2_coursework.presentation.worklist.WorkItemFactory
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
