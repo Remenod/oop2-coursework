@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -21,38 +22,39 @@ class WorkListViewModel(
         _controls,
         _actionError
     ) { discipline, controls, actionError ->
-            if (discipline == null) {
-                WorkListUiState(error = "Discipline not found", actionError = actionError)
-            } else {
-                val allItems = discipline.workItems
-                val visibleItems = allItems
-                    .filter { it.matchesQuery(controls.query) }
-                    .filter { it.matchesType(controls.typeFilter) }
-                    .filter { controls.statusFilter == null || it.status == controls.statusFilter }
-                    .filter { controls.priorityFilter == null || it.priority == controls.priorityFilter }
-                    .filter { controls.attachmentPurposeFilter == null || it.hasAttachmentPurpose(controls.attachmentPurposeFilter) }
-                    .filter { !controls.overdueOnly || it.isOverdue() }
-                    .filter { !controls.githubOnly || it.hasGitHubAttachment() }
-                    .filter { !controls.withLogsOnly || it.logs.isNotEmpty() }
-                    .sortBy(controls.sortOption)
+        if (discipline == null) {
+            WorkListUiState(error = "Discipline not found", actionError = actionError)
+        } else {
+            val allItems = discipline.workItems
+            val visibleItems = allItems
+                .filter { it.matchesQuery(controls.query) }
+                .filter { it.matchesType(controls.typeFilter) }
+                .filter { controls.statusFilter == null || it.status == controls.statusFilter }
+                .filter { controls.priorityFilter == null || it.priority == controls.priorityFilter }
+                .filter { controls.attachmentPurposeFilter == null || it.hasAttachmentPurpose(controls.attachmentPurposeFilter) }
+                .filter { !controls.overdueOnly || it.isOverdue() }
+                .filter { !controls.githubOnly || it.hasGitHubAttachment() }
+                .filter { !controls.withLogsOnly || it.logs.isNotEmpty() }
+                .sortBy(controls.sortOption)
 
-                WorkListUiState(
-                    disciplineName = discipline.name,
-                    items = visibleItems.map { it.toCardUiModel() },
-                    totalItems = allItems.size,
-                    query = controls.query,
-                    typeFilter = controls.typeFilter,
-                    statusFilter = controls.statusFilter,
-                    priorityFilter = controls.priorityFilter,
-                    attachmentPurposeFilter = controls.attachmentPurposeFilter,
-                    overdueOnly = controls.overdueOnly,
-                    githubOnly = controls.githubOnly,
-                    withLogsOnly = controls.withLogsOnly,
-                    sortOption = controls.sortOption,
-                    actionError = actionError
-                )
-            }
+            WorkListUiState(
+                disciplineName = discipline.name,
+                items = visibleItems.map { it.toCardUiModel() },
+                totalItems = allItems.size,
+                query = controls.query,
+                typeFilter = controls.typeFilter,
+                statusFilter = controls.statusFilter,
+                priorityFilter = controls.priorityFilter,
+                attachmentPurposeFilter = controls.attachmentPurposeFilter,
+                overdueOnly = controls.overdueOnly,
+                githubOnly = controls.githubOnly,
+                withLogsOnly = controls.withLogsOnly,
+                sortOption = controls.sortOption,
+                actionError = actionError
+            )
         }
+    }
+        .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.domain.model.AttachmentPurpose
 import com.remenod.oop2_coursework.domain.model.Priority
 import com.remenod.oop2_coursework.domain.model.WorkStatus
+import com.remenod.oop2_coursework.presentation.common.DebouncedSearchField
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -28,7 +30,7 @@ fun WorkListScreen(
     onWorkItemClick: (Long) -> Unit,
     onBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -96,7 +98,7 @@ fun WorkListScreen(
                     }
                 }
 
-                items(uiState.items) { item ->
+                items(uiState.items, key = { it.id }) { item ->
                     WorkItemCard(
                         item = item, 
                         onClick = { onWorkItemClick(item.id) },
@@ -137,22 +139,11 @@ fun WorkListControlsPanel(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQueryChange,
+            DebouncedSearchField(
+                query = state.query,
+                onQueryChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Search tasks") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (state.query.isNotBlank()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                }
+                label = "Search tasks"
             )
 
             Row(

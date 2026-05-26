@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,7 +24,7 @@ fun DisciplineListScreen(
     viewModel: DisciplineListViewModel,
     onDisciplineClick: (Long) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
     var editingDiscipline by remember { mutableStateOf<DisciplineCardUiModel?>(null) }
 
@@ -49,7 +50,7 @@ fun DisciplineListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(uiState.disciplines) { discipline ->
+                items(uiState.disciplines, key = { it.id }) { discipline ->
                     DisciplineCard(
                         discipline = discipline, 
                         onClick = { onDisciplineClick(discipline.id) },

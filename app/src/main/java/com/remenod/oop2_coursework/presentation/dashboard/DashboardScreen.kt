@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +28,7 @@ fun DashboardScreen(
     onSearchTasks: () -> Unit,
     onViewDisciplines: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -95,7 +96,7 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
-                        items(uiState.atRiskTasks) { task ->
+                        items(uiState.atRiskTasks, key = { it.id }) { task ->
                             DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
                         }
                     }
@@ -108,7 +109,7 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        items(uiState.highPriorityTasks) { task ->
+                        items(uiState.highPriorityTasks, key = { it.id }) { task ->
                             DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
                         }
                     }
@@ -121,7 +122,7 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
-                items(uiState.disciplineSummaries) { discipline ->
+                items(uiState.disciplineSummaries, key = { it.id }) { discipline ->
                     DisciplineSummaryCard(discipline, onClick = { onDisciplineClick(discipline.id) })
                 }
 

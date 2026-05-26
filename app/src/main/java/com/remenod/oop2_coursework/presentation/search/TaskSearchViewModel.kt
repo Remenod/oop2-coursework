@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 
 class TaskSearchViewModel(
@@ -55,7 +57,9 @@ class TaskSearchViewModel(
             withLogsOnly = controls.withLogsOnly,
             sortOption = controls.sortOption
         )
-    }.stateIn(
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = TaskSearchUiState(isLoading = true)

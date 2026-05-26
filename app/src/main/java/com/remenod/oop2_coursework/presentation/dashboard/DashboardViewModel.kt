@@ -8,6 +8,7 @@ import com.remenod.oop2_coursework.domain.model.WorkStatus
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.domain.service.AnalyticsService
 import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 
 class DashboardViewModel(
@@ -50,6 +51,7 @@ class DashboardViewModel(
                 )
             }
         }
+        .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

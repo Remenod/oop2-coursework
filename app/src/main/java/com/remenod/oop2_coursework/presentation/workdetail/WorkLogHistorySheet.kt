@@ -50,7 +50,7 @@ fun WorkLogHistorySheet(
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(logs) { log ->
+                    items(logs, key = { it.id }) { log ->
                         WorkLogItem(log, onRemove = { onRemove(log.id) })
                     }
                 }

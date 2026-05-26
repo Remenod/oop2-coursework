@@ -3,6 +3,7 @@ package com.remenod.oop2_coursework.presentation.workdetail
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -164,7 +165,7 @@ fun AttachmentItem(
                 }
                 if (attachment.canSubmit) {
                     TextButton(onClick = onSubmit) {
-                        Icon(Icons.Default.Send, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
                         Text("Submit")
                     }

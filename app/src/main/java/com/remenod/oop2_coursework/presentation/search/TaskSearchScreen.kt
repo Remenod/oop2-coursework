@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.domain.model.AttachmentPurpose
 import com.remenod.oop2_coursework.domain.model.Priority
 import com.remenod.oop2_coursework.domain.model.WorkStatus
+import com.remenod.oop2_coursework.presentation.common.DebouncedSearchField
 import com.remenod.oop2_coursework.presentation.worklist.PriorityBadge
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -28,7 +30,7 @@ fun TaskSearchScreen(
     onTaskClick: (Long) -> Unit,
     onBack: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -79,7 +81,7 @@ fun TaskSearchScreen(
                     }
                 }
 
-                items(state.items) { item ->
+                items(state.items, key = { it.id }) { item ->
                     TaskSearchResultCard(
                         item = item,
                         onClick = { onTaskClick(item.id) }
@@ -110,20 +112,11 @@ fun TaskSearchControlsPanel(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQueryChange,
+            DebouncedSearchField(
+                query = state.query,
+                onQueryChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Search across all disciplines") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (state.query.isNotBlank()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                }
+                label = "Search across all disciplines"
             )
 
             Row(

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -27,7 +28,7 @@ fun WorkDetailScreen(
     onBack: () -> Unit,
     onSubTaskClick: (Long) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
 
     var showEditDialog by remember { mutableStateOf(false) }
@@ -167,7 +168,7 @@ fun WorkDetailScreen(
                         item {
                             Text(text = "Topics", style = MaterialTheme.typography.titleMedium)
                         }
-                        items(item.examTopics) { topic ->
+                        items(item.examTopics, key = { it.index }) { topic ->
                             ExamTopicItem(topic, onUpdate = { c -> viewModel.updateExamTopic(topic.index, c) }, onRemove = { viewModel.removeExamTopic(topic.index) })
                         }
                         item {
@@ -186,7 +187,7 @@ fun WorkDetailScreen(
                                 }
                             }
                         }
-                        items(item.subTasks) { subTask ->
+                        items(item.subTasks, key = { it.id }) { subTask ->
                             OutlinedCard(
                                 modifier = Modifier.fillMaxWidth().clickable { 
                                     onSubTaskClick(subTask.id)
