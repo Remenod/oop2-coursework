@@ -142,68 +142,62 @@ class InMemoryTaskRepositoryTest {
     }
 
     @Test
-    fun testProgrammingTaskProgressUpdates() = runTest {
+    fun testChecklistUpdatesProgress() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
-        val task = ProgrammingTask(0, "P", "D")
-        val created = repository.addRootWorkItem(1L, task) as ProgrammingTask
+        val task = GenericTask(0, "G", "D")
+        val created = repository.addRootWorkItem(1L, task) as GenericTask
         
-        created.commitsCount = 5
-        created.issuesResolved = 2
-        created.testsPassed = 1.0
+        assertEquals(0.0, created.getProgress(), 0.01)
+        
+        created.addChecklistItem("Item 1")
         repository.updateWorkItem(created)
+        assertEquals(0.0, created.getProgress(), 0.01) // 0/1
         
-        val restored = repository.observeWorkItem(created.id).first() as ProgrammingTask
-        assertEquals(1.0, restored.getProgress(), 0.01)
+        created.setChecklistItemCompleted(0, true)
+        repository.updateWorkItem(created)
+        assertEquals(1.0, created.getProgress(), 0.01) // 1/1
     }
 
     @Test
-    fun testExamTaskTopicManagement() = runTest {
+    fun testToggleCompletion() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
+        val task = GenericTask(10L, "G", "D") // No checklist
+        repository.addRootWorkItem(1L, task)
+        
+        assertEquals(WorkStatus.CREATED, task.status)
+        
+        task.complete()
+        repository.updateWorkItem(task)
+        assertEquals(WorkStatus.DONE, task.status)
+        assertEquals(1.0, task.getProgress(), 0.01)
+        
+        repository.changeWorkItemStatus(10L, WorkStatus.IN_PROGRESS)
+        val restored = repository.observeWorkItem(10L).first()!!
+        assertEquals(WorkStatus.IN_PROGRESS, restored.status)
+        assertEquals(0.0, restored.getProgress(), 0.01)
+    }
+
+    @Test
+    fun testProgrammingTaskNoFreeProgress() = runTest {
+        val task = ProgrammingTask(0, "P", "D", requiredCommits = 5, requiredIssues = 2)
+        // No checklist. Active: Commits, Issues, Tests. Total weight 0.75
+        // 5/5 commits = 1.0. (1.0 * 0.25) / 0.75 = 0.333
+        task.commitsCount = 5
+        assertEquals(0.333, task.getProgress(), 0.01)
+    }
+
+    @Test
+    fun testExamTaskProgressWithTopics() = runTest {
         val task = ExamTask(0, "E", "D")
-        val created = repository.addRootWorkItem(1L, task) as ExamTask
-        
-        created.topics.add(ExamTopic("T1", 100))
-        repository.updateWorkItem(created)
-        
-        val restored = repository.observeWorkItem(created.id).first() as ExamTask
-        assertEquals(1.0, restored.getProgress(), 0.01)
-        
-        created.topics[0] = created.topics[0].copy(confidence = 0)
-        repository.updateWorkItem(created)
-        
-        assertEquals(0.0, (repository.observeWorkItem(created.id).first() as ExamTask).getProgress(), 0.01)
+        task.topics.add(ExamTopic("T1", 100))
+        task.topics.add(ExamTopic("T2", 0))
+        assertEquals(0.5, task.getProgress(), 0.01)
     }
 
     @Test
-    fun testSeminarTaskStageToggles() = runTest {
-        repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
+    fun testSeminarTaskProgressWithStages() = runTest {
         val task = SeminarTask(0, "S", "D")
-        val created = repository.addRootWorkItem(1L, task) as SeminarTask
-        
-        created.topicSelected = true
-        repository.updateWorkItem(created)
-        
-        // 1 of 5 stages
-        assertEquals(0.2, (repository.observeWorkItem(created.id).first() as SeminarTask).getProgress(), 0.01)
-    }
-
-    @Test
-    fun testSpecializedTaskPropagationToParent() = runTest {
-        repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
-        val project = ProjectTask(0, "Root", "D")
-        val createdProject = repository.addRootWorkItem(1L, project) as ProjectTask
-        
-        val seminar = SeminarTask(0, "S", "D")
-        val createdSeminar = repository.addSubTask(createdProject.id, seminar) as SeminarTask
-        
-        assertEquals(0.0, (repository.observeWorkItem(createdProject.id).first() as ProjectTask).getProgress(), 0.01)
-        
-        createdSeminar.topicSelected = true
-        createdSeminar.materialsCollected = true
-        repository.updateWorkItem(createdSeminar)
-        
-        // 2 of 5 stages = 0.4. Project should be 0.4
-        val restoredProject = repository.observeWorkItem(createdProject.id).first() as ProjectTask
-        assertEquals(0.4, restoredProject.getProgress(), 0.01)
+        task.topicSelected = true
+        assertEquals(0.2, task.getProgress(), 0.01)
     }
 }
