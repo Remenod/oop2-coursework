@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.domain.model.*
-import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditDialog
+import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +93,7 @@ fun WorkDetailScreen(
                     Text(text = item.progressExplanation, style = MaterialTheme.typography.bodySmall)
                 }
 
-                if (item.typeName == "ReadingTask") {
+                if (item.type == WorkItemType.READING) {
                     item {
                         Button(onClick = { showReadingProgressDialog = true }) {
                             Text("Update Reading Progress")
@@ -101,7 +101,7 @@ fun WorkDetailScreen(
                     }
                 }
 
-                if (item.subTasks.isNotEmpty() || item.typeName == "ProjectTask") {
+                if (item.subTasks.isNotEmpty() || item.type == WorkItemType.PROJECT) {
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(text = "Sub-tasks", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -143,10 +143,11 @@ fun WorkDetailScreen(
     }
 
     if (showEditDialog && uiState.item != null) {
-        WorkItemEditDialog(
+        WorkItemEditSheet(
             initialTitle = uiState.item!!.title,
             initialDescription = uiState.item!!.description,
             initialPriority = uiState.item!!.priority,
+            initialType = uiState.item!!.type,
             allowTypeChange = false,
             onDismiss = { showEditDialog = false },
             onConfirm = { title, desc, _, priority, _ ->
@@ -156,7 +157,7 @@ fun WorkDetailScreen(
     }
 
     if (showAddSubTaskDialog) {
-        WorkItemEditDialog(
+        WorkItemEditSheet(
             onDismiss = { showAddSubTaskDialog = false },
             onConfirm = { title, desc, type, priority, pages ->
                 viewModel.addSubTask(title, desc, type, priority, pages)
@@ -165,23 +166,42 @@ fun WorkDetailScreen(
     }
 
     if (showReadingProgressDialog && uiState.item != null) {
-        var pages by remember { mutableStateOf("") }
+        val currentRead = uiState.item!!.readPages ?: 0
+        val currentTotal = uiState.item!!.totalPages ?: 100
+        
+        var pagesRead by remember { mutableStateOf(currentRead.toString()) }
+        var totalPages by remember { mutableStateOf(currentTotal.toString()) }
+        
         AlertDialog(
             onDismissRequest = { showReadingProgressDialog = false },
             title = { Text("Update Progress") },
             text = {
-                OutlinedTextField(
-                    value = pages,
-                    onValueChange = { pages = it },
-                    label = { Text("Pages Read") }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = pagesRead,
+                        onValueChange = { pagesRead = it.filter { c -> c.isDigit() } },
+                        label = { Text("Pages Read") }
+                    )
+                    OutlinedTextField(
+                        value = totalPages,
+                        onValueChange = { totalPages = it.filter { c -> c.isDigit() } },
+                        label = { Text("Total Pages") }
+                    )
+                }
             },
             confirmButton = {
-                Button(onClick = { 
-                    val p = pages.toIntOrNull() ?: 0
-                    viewModel.updateReadingProgress(p, 100)
-                    showReadingProgressDialog = false
-                }) { Text("Save") }
+                val r = pagesRead.toIntOrNull() ?: 0
+                val t = totalPages.toIntOrNull() ?: 0
+                Button(
+                    enabled = t > 0 && r >= 0 && r <= t,
+                    onClick = { 
+                        viewModel.updateReadingProgress(r, t)
+                        showReadingProgressDialog = false
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReadingProgressDialog = false }) { Text("Cancel") }
             }
         )
     }

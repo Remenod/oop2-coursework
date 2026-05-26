@@ -1,6 +1,7 @@
 package com.remenod.oop2_coursework.presentation.workdetail
 
 import com.remenod.oop2_coursework.domain.model.Priority
+import com.remenod.oop2_coursework.domain.model.WorkItemType
 import com.remenod.oop2_coursework.domain.model.WorkStatus
 
 data class WorkDetailUiState(
@@ -15,11 +16,14 @@ data class WorkItemDetailUiModel(
     val description: String,
     val status: WorkStatus,
     val priority: Priority,
+    val type: WorkItemType,
     val typeName: String,
     val deadline: String,
     val progressPercent: Double,
     val progressExplanation: String,
     val canBeCompleted: Boolean,
+    val readPages: Int? = null,
+    val totalPages: Int? = null,
     val checklist: List<ChecklistUiModel> = emptyList(),
     val subTasks: List<SubTaskUiModel> = emptyList()
 )

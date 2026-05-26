@@ -69,7 +69,7 @@ fun WorkListScreen(
     }
 
     if (showAddDialog) {
-        WorkItemEditDialog(
+        WorkItemEditSheet(
             onDismiss = { showAddDialog = false },
             onConfirm = { title, description, type, priority, totalPages ->
                 viewModel.addTask(title, description, type, priority, totalPages)

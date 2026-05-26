@@ -82,17 +82,29 @@ class WorkDetailViewModel(
 
     private fun WorkItem.toDetailUiModel(): WorkItemDetailUiModel {
         val snapshot = getProgressSnapshot()
+        val type = when (this) {
+            is ProjectTask -> WorkItemType.PROJECT
+            is ReadingTask -> WorkItemType.READING
+            is ProgrammingTask -> WorkItemType.PROGRAMMING
+            is ExamTask -> WorkItemType.EXAM
+            is SeminarTask -> WorkItemType.SEMINAR
+            else -> WorkItemType.GENERIC
+        }
+        
         return WorkItemDetailUiModel(
             id = id,
             title = title,
             description = description,
             status = status,
             priority = priority,
+            type = type,
             typeName = this::class.simpleName ?: "Task",
             deadline = deadline?.toString() ?: "No deadline",
             progressPercent = snapshot.percent,
             progressExplanation = snapshot.explanation,
             canBeCompleted = canBeCompleted(),
+            readPages = (this as? ReadingTask)?.readPages,
+            totalPages = (this as? ReadingTask)?.totalPages,
             checklist = if (this is AtomicWorkItem) {
                 checklist.map { ChecklistUiModel(it.text, it.isCompleted) }
             } else emptyList(),
