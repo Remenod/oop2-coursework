@@ -29,3 +29,25 @@ enum class AttachmentOpenMode {
     CLOUD,
     EXTERNAL_APP
 }
+
+enum class WorkItemType {
+    GENERIC,
+    PROGRAMMING,
+    EXAM,
+    SEMINAR,
+    READING,
+    PROJECT
+}
+
+enum class AttachmentType {
+    LINK,
+    RESOURCE
+}
+
+enum class AttachmentSubtype {
+    GITHUB,
+    GOOGLE_CLASSROOM,
+    LOCAL_FILE,
+    CLOUD_FILE,
+    UNKNOWN
+}
