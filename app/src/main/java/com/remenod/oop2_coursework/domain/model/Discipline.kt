@@ -22,6 +22,18 @@ class Discipline(
         _workItems.remove(item)
     }
 
+    fun updateMetadata(
+        name: String,
+        teacherName: String,
+        semester: Int,
+        color: Int
+    ) {
+        this.name = name
+        this.teacherName = teacherName
+        this.semester = semester
+        this.color = color
+    }
+
     override fun getProgress(): Double {
         if (_workItems.isEmpty()) return 1.0
         return _workItems.map { it.getProgress() }.average()
