@@ -283,33 +283,35 @@ Added manual logs, work session logs, automatic task history entries, and timeli
 
 ### Phase 5 — Dashboard, Search, Filters, and Analytics
 
-Planned next.
+In progress.
 
-The next major step is to use existing task data to provide a higher-level overview.
+The current branch uses existing task data to provide a higher-level overview while keeping runtime storage in memory.
 
 Planned features:
 
-- dashboard screen;
-- total tasks count;
-- active, completed, cancelled, and overdue tasks;
-- tasks due today;
-- tasks due this week;
-- total estimated time;
-- total logged time;
-- progress by discipline;
-- overdue count by discipline;
-- recent activity timeline;
-- search by title and description;
-- filter by status;
-- filter by priority;
-- filter by task type;
-- filter by overdue state;
-- filter by attachment purpose;
-- filter by tasks with GitHub repository;
-- sort by deadline;
-- sort by priority;
-- sort by updated date;
-- sort by progress.
+- dashboard screen — implemented;
+- total tasks count — implemented;
+- active, completed, cancelled, and overdue tasks — implemented;
+- tasks due today — implemented;
+- tasks due this week — implemented;
+- total estimated time — implemented;
+- total logged time — implemented;
+- progress by discipline — implemented;
+- overdue count by discipline — implemented;
+- global recursive search by title and description — implemented;
+- filter by status — implemented;
+- filter by priority — implemented;
+- filter by task type — implemented;
+- filter by overdue state — implemented;
+- filter by attachment purpose — implemented;
+- filter by tasks with GitHub repository — implemented;
+- filter by tasks with logs — implemented;
+- sort by deadline — implemented;
+- sort by priority — implemented;
+- sort by updated date — implemented;
+- sort by progress — implemented.
+
+Recent activity on the dashboard is intentionally out of scope for this phase. Work logs remain available in task detail, and total logged time is included in analytics.
 
 ### Phase 6 — Room Persistence
 

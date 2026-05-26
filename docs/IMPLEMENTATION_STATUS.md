@@ -26,7 +26,8 @@
 - [x] Attachments UI (interactive links via `LocalUriHandler`, distinct icons/colors).
 - [x] Work Log UI (concise summary on main screen + full History BottomSheet).
 - [x] Dashboard route with recursive analytics summary.
-- [x] Work list search, filters, and sorting.
+- [x] Work list search, filters, attachment-purpose filtering, and sorting.
+- [x] Global cross-discipline task search with recursive subtask results.
 
 ## Missing / TODO
 - [ ] **Domain Logic Refinement**: 
@@ -35,5 +36,12 @@
     - [x] `ReadingTask` page updates strictly through `updatePages()`.
 - [x] **Analytics Service**: Recursive calculations implemented.
 - [x] **Dashboard**: ViewModel and Screen implemented.
-- [ ] **Global Search & Filters**: Work list filtering exists; global cross-discipline search still needs a dedicated entry point.
-- [ ] **Dashboard Polish**: Add stronger empty states and reduce duplicate urgent/high-priority task appearances.
+- [x] **Global Search & Filters**: Cross-discipline recursive task search is implemented.
+- [x] **Attachment Purpose Filters**: Available in work list and global search.
+- [x] **Dashboard Polish**: Duplicate urgent/high-priority task appearances are reduced.
+- [x] **Dashboard Empty States**: Empty dashboard data has a dedicated state.
+- [x] **README Roadmap Cleanup**: Public roadmap synchronized with implementation status.
+
+## Phase 5 Scope Notes
+- Recent activity on the dashboard is intentionally out of scope for this phase.
+- Work logs remain available in task detail, and total logged time is included in analytics.
