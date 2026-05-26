@@ -26,15 +26,54 @@ class WorkDetailViewModel(
             initialValue = WorkDetailUiState(isLoading = true)
         )
 
+    fun updateBasicInfo(title: String, description: String, priority: Priority) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                item.title = title
+                item.description = description
+                item.priority = priority
+                repository.updateWorkItem(item)
+            }
+        }
+    }
+
+    fun updateReadingProgress(readPages: Int, totalPages: Int) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is ReadingTask) {
+                    item.readPages = readPages
+                    item.totalPages = totalPages
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun addSubTask(title: String, description: String, type: WorkItemType, priority: Priority, totalPages: Int?) {
+        viewModelScope.launch {
+            val item = when (type) {
+                WorkItemType.PROJECT -> ProjectTask(0, title, description)
+                WorkItemType.READING -> ReadingTask(0, title, description, totalPages = totalPages ?: 100)
+                else -> GenericTask(0, title, description)
+            }.apply { this.priority = priority }
+            
+            repository.addSubTask(workItemId, item)
+        }
+    }
+
+    fun deleteThisTask() {
+        viewModelScope.launch {
+            repository.deleteWorkItem(workItemId)
+        }
+    }
+
     fun completeTask() {
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 try {
                     item.complete()
                     repository.updateWorkItem(item)
-                } catch (e: Exception) {
-                    // Handle error
-                }
+                } catch (_: Exception) {}
             }
         }
     }
