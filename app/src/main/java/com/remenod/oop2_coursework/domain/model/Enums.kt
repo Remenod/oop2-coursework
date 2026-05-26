@@ -51,3 +51,11 @@ enum class AttachmentSubtype {
     CLOUD_FILE,
     UNKNOWN
 }
+
+enum class SeminarStageType {
+    TOPIC_SELECTED,
+    MATERIALS_COLLECTED,
+    SPEECH_PREPARED,
+    SLIDES_PREPARED,
+    REHEARSAL_DONE
+}

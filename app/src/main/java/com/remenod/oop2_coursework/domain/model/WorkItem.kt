@@ -22,23 +22,67 @@ abstract class WorkItem(
     private val _logs = mutableListOf<WorkLogEntry>()
     val logs: List<WorkLogEntry> get() = _logs
 
+    fun touch() {
+        updatedAt = LocalDateTime.now()
+    }
+
+    fun changeStatus(newStatus: WorkStatus) {
+        status = newStatus
+        touch()
+    }
+
+    fun setUserStatus(newStatus: WorkStatus) {
+        if (newStatus == WorkStatus.DONE) {
+            complete()
+        } else {
+            changeStatus(newStatus)
+        }
+    }
+
+    fun updateMetadata(
+        title: String,
+        description: String,
+        status: WorkStatus,
+        priority: Priority,
+        deadline: LocalDateTime?,
+        estimatedMinutes: Int
+    ) {
+        require(title.isNotBlank()) { "Title cannot be blank" }
+        require(estimatedMinutes >= 0) { "Estimated time cannot be negative" }
+
+        if (status == WorkStatus.DONE && !validateCompletion()) {
+            throw IllegalStateException("Task cannot be marked as done yet")
+        }
+
+        this.title = title.trim()
+        this.description = description.trim()
+        this.priority = priority
+        this.deadline = deadline
+        this.estimatedMinutes = estimatedMinutes
+        this.status = status
+        touch()
+    }
+
     fun addAttachment(attachment: Attachment) {
         _attachments.add(attachment)
-        updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun removeAttachment(attachment: Attachment) {
         _attachments.remove(attachment)
-        updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun addLog(entry: WorkLogEntry) {
         _logs.add(entry)
-        updatedAt = LocalDateTime.now()
+        touch()
     }
 
     fun isOverdue(now: LocalDateTime = LocalDateTime.now()): Boolean {
-        return deadline?.isBefore(now) ?: false && status != WorkStatus.DONE
+        return deadline != null && 
+                deadline!!.isBefore(now) && 
+                status != WorkStatus.DONE && 
+                status != WorkStatus.CANCELLED
     }
 
     // Template Method
@@ -59,7 +103,7 @@ abstract class WorkItem(
     override fun complete() {
         if (canBeCompleted()) {
             status = WorkStatus.DONE
-            updatedAt = LocalDateTime.now()
+            touch()
         } else {
             throw IllegalStateException("Work item cannot be completed")
         }

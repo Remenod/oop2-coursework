@@ -6,10 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,6 +26,7 @@ fun WorkListScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -37,6 +38,11 @@ fun WorkListScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Task")
+            }
         }
     ) { padding ->
         if (uiState.isLoading) {
@@ -51,18 +57,44 @@ fun WorkListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (uiState.actionError != null) {
+                    item {
+                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
+                            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = uiState.actionError!!, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { viewModel.clearActionError() }) { Text("X") }
+                            }
+                        }
+                    }
+                }
+                
                 items(uiState.items) { item ->
-                    WorkItemCard(item, onClick = { onWorkItemClick(item.id) })
+// ...
+                    WorkItemCard(
+                        item = item, 
+                        onClick = { onWorkItemClick(item.id) },
+                        onDelete = { viewModel.deleteTask(item.id) }
+                    )
                 }
             }
         }
+    }
+
+    if (showAddDialog) {
+        WorkItemEditSheet(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { result ->
+                viewModel.addTask(result)
+            }
+        )
     }
 }
 
 @Composable
 fun WorkItemCard(
     item: WorkItemCardUiModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -76,18 +108,26 @@ fun WorkItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = item.typeLabel,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = item.typeLabel,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                    Text(text = item.status.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 }
                 
-                PriorityBadge(item.priority)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    PriorityBadge(item.priority)
+                    IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -117,14 +157,18 @@ fun WorkItemCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
-            if (item.isOverdue) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column {
+                Text(text = "Due: ${item.deadlineText}", style = MaterialTheme.typography.labelSmall)
                 Text(
-                    text = "OVERDUE",
-                    color = MaterialTheme.colorScheme.error,
+                    text = item.timeLeftText,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.ExtraBold
+                    color = if (item.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    fontWeight = if (item.isOverdue) FontWeight.Bold else FontWeight.Normal
                 )
+                Text(text = "Estimate: ${item.estimatedTimeText}", style = MaterialTheme.typography.labelSmall)
             }
         }
     }

@@ -43,8 +43,10 @@ object WorkItemPersistenceMapper {
                 estimatedMinutes = item.estimatedMinutes,
 
                 // Programming
-                commitCount = (item as? ProgrammingTask)?.commitsCount,
-                closedIssues = (item as? ProgrammingTask)?.issuesResolved,
+                commitsCount = (item as? ProgrammingTask)?.commitsCount,
+                requiredCommits = (item as? ProgrammingTask)?.requiredCommits,
+                issuesResolved = (item as? ProgrammingTask)?.issuesResolved,
+                requiredClosedIssues = (item as? ProgrammingTask)?.requiredIssues,
                 testsPassed = (item as? ProgrammingTask)?.testsPassed,
 
                 // Reading
@@ -167,8 +169,10 @@ object WorkItemPersistenceMapper {
                 id = record.id,
                 title = record.title,
                 description = record.description,
-                commitsCount = record.commitCount ?: 0,
-                issuesResolved = record.closedIssues ?: 0,
+                commitsCount = record.commitsCount ?: 0,
+                requiredCommits = record.requiredCommits ?: 5,
+                issuesResolved = record.issuesResolved ?: 0,
+                requiredIssues = record.requiredClosedIssues ?: 2,
                 testsPassed = record.testsPassed ?: 0.0,
                 estimatedMinutes = record.estimatedMinutes
             )

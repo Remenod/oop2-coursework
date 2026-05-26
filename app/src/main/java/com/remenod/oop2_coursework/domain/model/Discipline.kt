@@ -22,12 +22,28 @@ class Discipline(
         _workItems.remove(item)
     }
 
+    fun updateMetadata(
+        name: String,
+        teacherName: String,
+        semester: Int,
+        color: Int
+    ) {
+        this.name = name
+        this.teacherName = teacherName
+        this.semester = semester
+        this.color = color
+    }
+
     override fun getProgress(): Double {
         if (_workItems.isEmpty()) return 1.0
         return _workItems.map { it.getProgress() }.average()
     }
 
+    fun getAllWorkItemsRecursive(): List<WorkItem> {
+        return _workItems.flatMap { it.flatten() }
+    }
+
     fun getOverdueItems(now: LocalDateTime = LocalDateTime.now()): List<WorkItem> {
-        return _workItems.filter { it.isOverdue(now) }
+        return getAllWorkItemsRecursive().filter { it.isOverdue(now) }
     }
 }

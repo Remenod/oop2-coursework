@@ -37,9 +37,9 @@ data class WorkItemRecord(
     val repositoryUrl: String? = null,
     val branch: String? = null,
     val requiredCommits: Int? = null,
-    val commitCount: Int? = null,
+    val commitsCount: Int? = null,
     val requiredClosedIssues: Int? = null,
-    val closedIssues: Int? = null,
+    val issuesResolved: Int? = null,
     val testsPassed: Double? = null,
 
     // Reading specialized fields

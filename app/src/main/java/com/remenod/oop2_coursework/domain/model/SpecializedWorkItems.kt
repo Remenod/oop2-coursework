@@ -4,32 +4,53 @@ class ProgrammingTask(
     id: Long,
     title: String,
     description: String,
-    var commitsCount: Int = 0,   // Probably I would not figure out how to make dis automatic
-    var issuesResolved: Int = 0, // Probably I would not figure out how to make dis automatic
+    var commitsCount: Int = 0,
+    var requiredCommits: Int = 5,
+    var issuesResolved: Int = 0,
+    var requiredIssues: Int = 2,
     var testsPassed: Double = 0.0, // 0.0 to 1.0
     estimatedMinutes: Int = 0
 ) : AtomicWorkItem(id, title, description, estimatedMinutes = estimatedMinutes) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        val checklistProgress = getChecklistProgress()
-        val commitProgress = (commitsCount / 5.0).coerceAtMost(1.0)
-        val issueProgress = (issuesResolved / 2.0).coerceAtMost(1.0)
-        val testProgress = testsPassed
+        val components = mutableListOf<Pair<Double, Double>>()
 
-        val totalProgress = checklistProgress * 0.4 + commitProgress * 0.25 + issueProgress * 0.25 + testProgress * 0.1
-        
-        val explanation = buildString {
-            append("${(checklistProgress * 100).toInt()}% checklist, ")
-            append("$commitsCount commits, ")
-            append("$issuesResolved issues, ")
-            append("${(testProgress * 100).toInt()}% tests")
+        if (checklist.isNotEmpty()) {
+            components += getChecklistProgress() to 0.25
         }
 
-        return ProgressSnapshot(totalProgress, explanation)
+        if (requiredCommits > 0) {
+            components += (commitsCount.toDouble() / requiredCommits).coerceIn(0.0, 1.0) to 0.25
+        }
+
+        if (requiredIssues > 0) {
+            components += (issuesResolved.toDouble() / requiredIssues).coerceIn(0.0, 1.0) to 0.25
+        }
+
+        components += testsPassed.coerceIn(0.0, 1.0) to 0.25
+
+        val totalWeight = components.sumOf { it.second }
+        val percent = if (totalWeight == 0.0) 0.0 else components.sumOf { it.first * it.second } / totalWeight
+        
+        val explanation = buildString {
+            append("$commitsCount/$requiredCommits commits, ")
+            append("$issuesResolved/$requiredIssues issues, ")
+            append("${(testsPassed * 100).toInt()}% tests")
+            if (checklist.isNotEmpty()) {
+                append(", ${(getChecklistProgress() * 100).toInt()}% checklist")
+            }
+        }
+
+        return ProgressSnapshot(percent, explanation)
     }
 
     override fun validateCompletion(): Boolean {
-        return calculateProgress().percent >= 0.95
+        val commitsOk = requiredCommits <= 0 || commitsCount >= requiredCommits
+        val issuesOk = requiredIssues <= 0 || issuesResolved >= requiredIssues
+        val testsOk = testsPassed >= 1.0
+        val checklistOk = checklist.isEmpty() || getChecklistProgress() >= 1.0
+
+        return commitsOk && issuesOk && testsOk && checklistOk
     }
 }
 
@@ -83,7 +104,7 @@ class SeminarTask(
     }
 
     override fun validateCompletion(): Boolean {
-        return rehearsalDone // Must have done rehearsal to complete (idk, probably not actually)
+        return rehearsalDone
     }
 }
 
@@ -96,9 +117,19 @@ class ReadingTask(
 ) : AtomicWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        if (totalPages == 0) return ProgressSnapshot(1.0, "No pages to read")
-        val percent = (readPages.toDouble() / totalPages).coerceAtMost(1.0)
-        return ProgressSnapshot(percent, "Read $readPages of $totalPages pages")
+        val safeTotal = totalPages.coerceAtLeast(1)
+        val safeRead = readPages.coerceIn(0, safeTotal)
+        val percent = safeRead.toDouble() / safeTotal
+        return ProgressSnapshot(percent, "Read $safeRead of $safeTotal pages")
+    }
+
+    fun updatePages(readPages: Int, totalPages: Int) {
+        require(totalPages > 0) { "Total pages must be positive" }
+        require(readPages in 0..totalPages) { "Read pages must be within 0 and total pages" }
+
+        this.readPages = readPages
+        this.totalPages = totalPages
+        touch()
     }
 
     override fun validateCompletion(): Boolean {
@@ -113,15 +144,15 @@ class GenericTask(
 ) : AtomicWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        return if (status == WorkStatus.DONE) {
-            ProgressSnapshot(1.0, "Completed")
-        } else {
-            ProgressSnapshot(getChecklistProgress(), getChecklistExplanation())
+        return when {
+            status == WorkStatus.DONE -> ProgressSnapshot(1.0, "Completed")
+            checklist.isEmpty() -> ProgressSnapshot(0.0, "No checklist items")
+            else -> ProgressSnapshot(getChecklistProgress(), getChecklistExplanation())
         }
     }
 
     override fun validateCompletion(): Boolean {
-        return getChecklistProgress() >= 1.0
+        return checklist.isEmpty() || getChecklistProgress() >= 1.0
     }
 }
 
@@ -132,19 +163,27 @@ class ProjectTask(
 ) : CompositeWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        
-        val totalEstimated = subTasks.sumOf { it.estimatedMinutes.toDouble() }
-        val avgProgress = if (totalEstimated == 0.0) {
-            subTasks.map { it.getProgress() }.average()
-        } else {
-            subTasks.sumOf { it.getProgress() * (it.estimatedMinutes / totalEstimated) }
+        val activeSubTasks = subTasks.filter { it.status != WorkStatus.CANCELLED }
+
+        if (activeSubTasks.isEmpty()) {
+            return ProgressSnapshot(0.0, "No active sub-tasks")
         }
         
-        val completed = subTasks.count { it.status == WorkStatus.DONE }
-        return ProgressSnapshot(avgProgress, "$completed/${subTasks.size} sub-tasks completed")
+        val totalEstimated = activeSubTasks.sumOf { it.estimatedMinutes.toDouble() }
+        val avgProgress = if (totalEstimated <= 0.0) {
+            activeSubTasks.map { it.getProgress() }.average()
+        } else {
+            activeSubTasks.sumOf { it.getProgress() * (it.estimatedMinutes.toDouble() / totalEstimated) }
+        }
+        
+        val completed = activeSubTasks.count { it.status == WorkStatus.DONE }
+        return ProgressSnapshot(
+            percent = avgProgress.coerceIn(0.0, 1.0),
+            explanation = "$completed/${activeSubTasks.size} active sub-tasks completed"
+        )
     }
 
     override fun validateCompletion(): Boolean {
-        return subTasks.isNotEmpty() && subTasks.all { it.status == WorkStatus.DONE }
+        return subTasks.isNotEmpty() && subTasks.all { it.status == WorkStatus.DONE || it.status == WorkStatus.CANCELLED }
     }
 }

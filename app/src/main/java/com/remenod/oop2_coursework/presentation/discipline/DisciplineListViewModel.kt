@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class DisciplineListViewModel(
     private val repository: TaskRepository
@@ -24,6 +25,24 @@ class DisciplineListViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = DisciplineListUiState(isLoading = true)
         )
+
+    fun addDiscipline(name: String, teacher: String, semester: Int, color: Int) {
+        viewModelScope.launch {
+            repository.addDiscipline(Discipline(0, name, teacher, semester, color))
+        }
+    }
+
+    fun updateDiscipline(id: Long, name: String, teacher: String, semester: Int, color: Int) {
+        viewModelScope.launch {
+            repository.updateDiscipline(Discipline(id, name, teacher, semester, color))
+        }
+    }
+
+    fun deleteDiscipline(id: Long) {
+        viewModelScope.launch {
+            repository.deleteDiscipline(id)
+        }
+    }
 
     private fun Discipline.toCardUiModel(): DisciplineCardUiModel {
         return DisciplineCardUiModel(
