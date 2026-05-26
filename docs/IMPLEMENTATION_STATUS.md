@@ -25,13 +25,15 @@
 - [x] Interactive specialized sections (Reading slider, Programming stats, Exam topics).
 - [x] Attachments UI (interactive links via `LocalUriHandler`, distinct icons/colors).
 - [x] Work Log UI (concise summary on main screen + full History BottomSheet).
+- [x] Dashboard route with recursive analytics summary.
+- [x] Work list search, filters, and sorting.
 
 ## Missing / TODO
 - [ ] **Domain Logic Refinement**: 
-    - [ ] `CANCELLED` tasks excluded from `ProjectTask` aggregate progress.
-    - [ ] `isOverdue` logic refined for `DONE`/`CANCELLED`.
-    - [ ] `ReadingTask` page updates strictly through `updatePages()`.
-- [ ] **Analytics Service**: Currently a stub. Needs real calculation logic.
-- [ ] **Dashboard**: Not implemented. Needs ViewModel and Screen.
-- [ ] **Search & Filters**: Basic list view exists, but no global search/filtering.
-- [ ] **Search/Sort for WorkList**: Needs implementation in `WorkListViewModel`.
+    - [x] `CANCELLED` tasks excluded from `ProjectTask` aggregate progress.
+    - [x] `isOverdue` logic refined for `DONE`/`CANCELLED`.
+    - [x] `ReadingTask` page updates strictly through `updatePages()`.
+- [x] **Analytics Service**: Recursive calculations implemented.
+- [x] **Dashboard**: ViewModel and Screen implemented.
+- [ ] **Global Search & Filters**: Work list filtering exists; global cross-discipline search still needs a dedicated entry point.
+- [ ] **Dashboard Polish**: Add stronger empty states and reduce duplicate urgent/high-priority task appearances.
