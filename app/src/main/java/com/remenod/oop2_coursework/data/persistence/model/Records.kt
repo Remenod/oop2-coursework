@@ -99,3 +99,15 @@ data class WorkLogEntryRecord(
     val progressPercent: Double,
     val comment: String
 )
+
+/**
+ * A flat collection of all records for a discipline or task tree.
+ * Ready for bulk insertion into a database.
+ */
+data class PersistenceBundle(
+    val workItems: List<WorkItemRecord> = emptyList(),
+    val checklistItems: List<ChecklistItemRecord> = emptyList(),
+    val examTopics: List<ExamTopicRecord> = emptyList(),
+    val attachments: List<AttachmentRecord> = emptyList(),
+    val logs: List<WorkLogEntryRecord> = emptyList()
+)
