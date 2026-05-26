@@ -45,7 +45,12 @@ class ProgrammingTask(
     }
 
     override fun validateCompletion(): Boolean {
-        return calculateProgress().percent >= 0.95
+        val commitsOk = requiredCommits <= 0 || commitsCount >= requiredCommits
+        val issuesOk = requiredIssues <= 0 || issuesResolved >= requiredIssues
+        val testsOk = testsPassed >= 1.0
+        val checklistOk = checklist.isEmpty() || getChecklistProgress() >= 1.0
+
+        return commitsOk && issuesOk && testsOk && checklistOk
     }
 }
 
