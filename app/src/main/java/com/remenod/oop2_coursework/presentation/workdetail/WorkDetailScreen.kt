@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -92,13 +93,24 @@ fun WorkDetailScreen(
                     Text(text = item.progressExplanation, style = MaterialTheme.typography.bodySmall)
                 }
 
+                if (item.type != WorkItemType.PROJECT) {
+                    item {
+                        ChecklistSection(
+                            items = item.checklist,
+                            onAdd = viewModel::addChecklistItem,
+                            onCheckedChange = viewModel::setChecklistItemCompleted,
+                            onRemove = viewModel::removeChecklistItem
+                        )
+                    }
+                }
+
                 // Type-Specific Sections
                 when (item.type) {
                     WorkItemType.READING -> item {
-                        ReadingTaskSection(item, viewModel)
+                        ReadingTaskSection(item, viewModel::updateReadingProgress)
                     }
                     WorkItemType.PROGRAMMING -> item {
-                        ProgrammingTaskSection(item, viewModel)
+                        ProgrammingTaskSection(item, viewModel::updateProgrammingStats)
                     }
                     WorkItemType.EXAM -> {
                         item {
@@ -112,7 +124,7 @@ fun WorkDetailScreen(
                         }
                     }
                     WorkItemType.SEMINAR -> item {
-                        SeminarTaskSection(item.seminarStages, viewModel)
+                        SeminarTaskSection(item.seminarStages, viewModel::setSeminarStage)
                     }
                     WorkItemType.PROJECT -> {
                         item {
@@ -146,11 +158,11 @@ fun WorkDetailScreen(
 
                 item {
                     Button(
-                        onClick = { viewModel.completeTask() },
+                        onClick = { viewModel.toggleCompletion() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = item.status != WorkStatus.DONE && item.canBeCompleted
+                        enabled = item.status == WorkStatus.DONE || item.canBeCompleted
                     ) {
-                        Text(if (item.status == WorkStatus.DONE) "Completed" else "Mark as done")
+                        Text(if (item.status == WorkStatus.DONE) "Mark as not done" else "Mark as done")
                     }
                 }
             }
@@ -182,49 +194,151 @@ fun WorkDetailScreen(
 }
 
 @Composable
-fun ReadingTaskSection(item: WorkItemDetailUiModel, viewModel: WorkDetailViewModel) {
-    var showDialog by remember { mutableStateOf(false) }
-    
+fun ChecklistSection(
+    items: List<ChecklistUiModel>,
+    onAdd: (String) -> Unit,
+    onCheckedChange: (Int, Boolean) -> Unit,
+    onRemove: (Int) -> Unit
+) {
+    var newItem by rememberSaveable { mutableStateOf("") }
+
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Reading Progress", style = MaterialTheme.typography.titleSmall)
-            Text("Pages: ${item.readPages} / ${item.totalPages}", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = { showDialog = true }, modifier = Modifier.padding(top = 8.dp)) {
-                Text("Update Pages")
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Checklist", style = MaterialTheme.typography.titleSmall)
+
+            items.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = item.isCompleted,
+                        onCheckedChange = { checked ->
+                            onCheckedChange(item.index, checked)
+                        }
+                    )
+                    Text(
+                        text = item.text,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { onRemove(item.index) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove checklist item")
+                    }
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = newItem,
+                    onValueChange = { newItem = it },
+                    label = { Text("New checklist item") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    enabled = newItem.isNotBlank(),
+                    onClick = {
+                        onAdd(newItem)
+                        newItem = ""
+                    }
+                ) {
+                    Text("Add")
+                }
             }
         }
-    }
-
-    if (showDialog) {
-        var read by remember { mutableStateOf(item.readPages.toString()) }
-        var total by remember { mutableStateOf(item.totalPages.toString()) }
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("Update Reading") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = read, onValueChange = { read = it.filter { c -> c.isDigit() } }, label = { Text("Read") })
-                    OutlinedTextField(value = total, onValueChange = { total = it.filter { c -> c.isDigit() } }, label = { Text("Total") })
-                }
-            },
-            confirmButton = {
-                val r = read.toIntOrNull() ?: 0
-                val t = total.toIntOrNull() ?: 0
-                Button(enabled = t > 0 && r >= 0 && r <= t, onClick = { 
-                    viewModel.updateReadingProgress(r, t)
-                    showDialog = false
-                }) { Text("Save") }
-            },
-            dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancel") } }
-        )
     }
 }
 
 @Composable
-fun ProgrammingTaskSection(item: WorkItemDetailUiModel, viewModel: WorkDetailViewModel) {
-    var commits by remember { mutableStateOf(item.commitsCount?.toString() ?: "0") }
-    var issues by remember { mutableStateOf(item.issuesResolved?.toString() ?: "0") }
-    var tests by remember { mutableFloatStateOf(item.testsPassed?.toFloat() ?: 0f) }
+fun ReadingTaskSection(
+    item: WorkItemDetailUiModel,
+    onUpdate: (readPages: Int, totalPages: Int) -> Unit
+) {
+    var read by rememberSaveable(item.id, item.readPages) {
+        mutableStateOf((item.readPages ?: 0).toString())
+    }
+    var total by rememberSaveable(item.id, item.totalPages) {
+        mutableStateOf((item.totalPages ?: 100).toString())
+    }
+
+    val readInt = read.toIntOrNull() ?: 0
+    val totalInt = total.toIntOrNull() ?: 0
+    val valid = totalInt > 0 && readInt in 0..totalInt
+
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Reading Progress", style = MaterialTheme.typography.titleSmall)
+            Text("Pages: $readInt / $totalInt")
+
+            if (totalInt > 0) {
+                Slider(
+                    value = readInt.coerceIn(0, totalInt).toFloat(),
+                    onValueChange = { read = it.toInt().toString() },
+                    valueRange = 0f..totalInt.toFloat()
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(-10, -1, 1, 10).forEach { delta ->
+                    OutlinedButton(
+                        onClick = {
+                            if (totalInt > 0) {
+                                read = (readInt + delta).coerceIn(0, totalInt).toString()
+                            }
+                        }
+                    ) {
+                        Text(if (delta > 0) "+$delta" else "$delta")
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = read,
+                    onValueChange = { read = it.filter(Char::isDigit) },
+                    label = { Text("Read") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = total,
+                    onValueChange = { total = it.filter(Char::isDigit) },
+                    label = { Text("Total") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Button(
+                enabled = valid,
+                onClick = { onUpdate(readInt, totalInt) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save Reading Progress")
+            }
+        }
+    }
+}
+
+@Composable
+fun ProgrammingTaskSection(
+    item: WorkItemDetailUiModel,
+    onUpdate: (Int, Int, Int, Int, Double) -> Unit
+) {
+    var commits by rememberSaveable(item.id, item.commitsCount) { mutableStateOf((item.commitsCount ?: 0).toString()) }
+    var reqCommits by rememberSaveable(item.id, item.requiredCommits) { mutableStateOf((item.requiredCommits ?: 5).toString()) }
+    var issues by rememberSaveable(item.id, item.issuesResolved) { mutableStateOf((item.issuesResolved ?: 0).toString()) }
+    var reqIssues by rememberSaveable(item.id, item.requiredIssues) { mutableStateOf((item.requiredIssues ?: 2).toString()) }
+    var tests by rememberSaveable(item.id, item.testsPassed) { mutableFloatStateOf(item.testsPassed?.toFloat() ?: 0f) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -232,14 +346,25 @@ fun ProgrammingTaskSection(item: WorkItemDetailUiModel, viewModel: WorkDetailVie
             
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = reqCommits, onValueChange = { reqCommits = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
+            }
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = reqIssues, onValueChange = { reqIssues = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
             }
             
             Text("Tests Passed: ${(tests * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
             Slider(value = tests, onValueChange = { tests = it })
             
             Button(onClick = { 
-                viewModel.updateProgrammingStats(commits.toIntOrNull() ?: 0, issues.toIntOrNull() ?: 0, tests.toDouble())
+                onUpdate(
+                    commits.toIntOrNull() ?: 0, 
+                    reqCommits.toIntOrNull() ?: 5,
+                    issues.toIntOrNull() ?: 0,
+                    reqIssues.toIntOrNull() ?: 2,
+                    tests.toDouble()
+                )
             }, modifier = Modifier.fillMaxWidth()) {
                 Text("Update Stats")
             }
@@ -249,7 +374,7 @@ fun ProgrammingTaskSection(item: WorkItemDetailUiModel, viewModel: WorkDetailVie
 
 @Composable
 fun ExamTopicItem(topic: ExamTopicUiModel, onUpdate: (Int) -> Unit, onRemove: () -> Unit) {
-    var confidence by remember { mutableFloatStateOf(topic.confidence.toFloat()) }
+    var confidence by rememberSaveable(topic.index, topic.confidence) { mutableFloatStateOf(topic.confidence.toFloat()) }
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -267,7 +392,7 @@ fun ExamTopicItem(topic: ExamTopicUiModel, onUpdate: (Int) -> Unit, onRemove: ()
 
 @Composable
 fun AddTopicSection(onAdd: (String, Int) -> Unit) {
-    var name by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("New Topic") }, modifier = Modifier.weight(1f))
         Button(onClick = { 
@@ -280,24 +405,24 @@ fun AddTopicSection(onAdd: (String, Int) -> Unit) {
 }
 
 @Composable
-fun SeminarTaskSection(stages: SeminarStagesUiModel?, viewModel: WorkDetailViewModel) {
+fun SeminarTaskSection(stages: SeminarStagesUiModel?, onToggle: (SeminarStageType, Boolean) -> Unit) {
     if (stages == null) return
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Preparation Stages", style = MaterialTheme.typography.titleSmall)
-            SeminarStageRow("Topic Selected", stages.topicSelected) { viewModel.toggleSeminarStage(SeminarStageType.TOPIC_SELECTED) }
-            SeminarStageRow("Materials Collected", stages.materialsCollected) { viewModel.toggleSeminarStage(SeminarStageType.MATERIALS_COLLECTED) }
-            SeminarStageRow("Speech Prepared", stages.speechPrepared) { viewModel.toggleSeminarStage(SeminarStageType.SPEECH_PREPARED) }
-            SeminarStageRow("Slides Prepared", stages.slidesPrepared) { viewModel.toggleSeminarStage(SeminarStageType.SLIDES_PREPARED) }
-            SeminarStageRow("Rehearsal Done", stages.rehearsalDone) { viewModel.toggleSeminarStage(SeminarStageType.REHEARSAL_DONE) }
+            SeminarStageRow("Topic Selected", stages.topicSelected) { onToggle(SeminarStageType.TOPIC_SELECTED, it) }
+            SeminarStageRow("Materials Collected", stages.materialsCollected) { onToggle(SeminarStageType.MATERIALS_COLLECTED, it) }
+            SeminarStageRow("Speech Prepared", stages.speechPrepared) { onToggle(SeminarStageType.SPEECH_PREPARED, it) }
+            SeminarStageRow("Slides Prepared", stages.slidesPrepared) { onToggle(SeminarStageType.SLIDES_PREPARED, it) }
+            SeminarStageRow("Rehearsal Done", stages.rehearsalDone) { onToggle(SeminarStageType.REHEARSAL_DONE, it) }
         }
     }
 }
 
 @Composable
-fun SeminarStageRow(label: String, checked: Boolean, onToggle: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { onToggle() }) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+fun SeminarStageRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(text = label)
     }
 }
