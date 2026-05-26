@@ -59,12 +59,14 @@ class InMemoryTaskRepository : TaskRepository {
     }
 
     override suspend fun updateDiscipline(discipline: Discipline) {
-        val current = _state.value.disciplines.toMutableList()
-        val index = current.indexOfFirst { it.id == discipline.id }
-        if (index != -1) {
-            current[index] = discipline
-            setDisciplines(current)
-        }
+        val existing = _state.value.disciplines.find { it.id == discipline.id } ?: return
+        existing.updateMetadata(
+            name = discipline.name,
+            teacherName = discipline.teacherName,
+            semester = discipline.semester,
+            color = discipline.color
+        )
+        notifyChanged()
     }
 
     override suspend fun deleteDiscipline(id: Long) {
@@ -137,7 +139,7 @@ class InMemoryTaskRepository : TaskRepository {
     override suspend fun changeWorkItemStatus(id: Long, status: WorkStatus) {
         val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(id)
         item?.let {
-            setStatus(it, status)
+            it.setUserStatus(status)
             notifyChanged()
         }
     }
