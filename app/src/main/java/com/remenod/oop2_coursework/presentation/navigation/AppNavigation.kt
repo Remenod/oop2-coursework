@@ -34,5 +34,20 @@ fun AppNavHost(appContainer: AppContainer) {
                 )
             }
         )
+        composable(
+            route = "workList/{disciplineId}",
+            arguments = listOf(navArgument("disciplineId") { type = NavType.LongType }),
+            content = { backStackEntry ->
+                val disciplineId = backStackEntry.arguments?.getLong("disciplineId") ?: 0L
+                val viewModel: WorkListViewModel = viewModel(
+                    factory = ViewModelFactory { WorkListViewModel(appContainer.repository, disciplineId) }
+                )
+                WorkListScreen(
+                    viewModel = viewModel,
+                    onWorkItemClick = { id -> navController.navigate("workDetail/$id") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        )
     }
 }
