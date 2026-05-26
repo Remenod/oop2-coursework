@@ -1,5 +1,6 @@
 package com.remenod.oop2_coursework.presentation.worklist
 
+import com.remenod.oop2_coursework.domain.model.AttachmentPurpose
 import com.remenod.oop2_coursework.domain.model.Priority
 import com.remenod.oop2_coursework.domain.model.WorkStatus
 
@@ -28,6 +29,7 @@ data class WorkListUiState(
     val typeFilter: WorkListTypeFilter = WorkListTypeFilter.ALL,
     val statusFilter: WorkStatus? = null,
     val priorityFilter: Priority? = null,
+    val attachmentPurposeFilter: AttachmentPurpose? = null,
     val overdueOnly: Boolean = false,
     val githubOnly: Boolean = false,
     val withLogsOnly: Boolean = false,

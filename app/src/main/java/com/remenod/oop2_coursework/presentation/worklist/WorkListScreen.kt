@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.remenod.oop2_coursework.domain.model.AttachmentPurpose
 import com.remenod.oop2_coursework.domain.model.Priority
 import com.remenod.oop2_coursework.domain.model.WorkStatus
 
@@ -77,6 +78,7 @@ fun WorkListScreen(
                         onTypeFilterChange = viewModel::setTypeFilter,
                         onStatusFilterChange = viewModel::setStatusFilter,
                         onPriorityFilterChange = viewModel::setPriorityFilter,
+                        onAttachmentPurposeFilterChange = viewModel::setAttachmentPurposeFilter,
                         onOverdueOnlyChange = viewModel::setOverdueOnly,
                         onGithubOnlyChange = viewModel::setGithubOnly,
                         onWithLogsOnlyChange = viewModel::setWithLogsOnly,
@@ -123,6 +125,7 @@ fun WorkListControlsPanel(
     onTypeFilterChange: (WorkListTypeFilter) -> Unit,
     onStatusFilterChange: (WorkStatus?) -> Unit,
     onPriorityFilterChange: (Priority?) -> Unit,
+    onAttachmentPurposeFilterChange: (AttachmentPurpose?) -> Unit,
     onOverdueOnlyChange: (Boolean) -> Unit,
     onGithubOnlyChange: (Boolean) -> Unit,
     onWithLogsOnlyChange: (Boolean) -> Unit,
@@ -182,6 +185,24 @@ fun WorkListControlsPanel(
                         selected = state.typeFilter == type,
                         onClick = { onTypeFilterChange(type) },
                         label = { ChipText(type.label) }
+                    )
+                }
+            }
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = state.attachmentPurposeFilter == null,
+                    onClick = { onAttachmentPurposeFilterChange(null) },
+                    label = { ChipText("Any attachment") }
+                )
+                AttachmentPurpose.entries.forEach { purpose ->
+                    FilterChip(
+                        selected = state.attachmentPurposeFilter == purpose,
+                        onClick = { onAttachmentPurposeFilterChange(purpose) },
+                        label = { ChipText(purpose.name) }
                     )
                 }
             }

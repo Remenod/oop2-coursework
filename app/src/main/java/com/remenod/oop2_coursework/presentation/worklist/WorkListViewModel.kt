@@ -30,6 +30,7 @@ class WorkListViewModel(
                     .filter { it.matchesType(controls.typeFilter) }
                     .filter { controls.statusFilter == null || it.status == controls.statusFilter }
                     .filter { controls.priorityFilter == null || it.priority == controls.priorityFilter }
+                    .filter { controls.attachmentPurposeFilter == null || it.hasAttachmentPurpose(controls.attachmentPurposeFilter) }
                     .filter { !controls.overdueOnly || it.isOverdue() }
                     .filter { !controls.githubOnly || it.hasGitHubAttachment() }
                     .filter { !controls.withLogsOnly || it.logs.isNotEmpty() }
@@ -43,6 +44,7 @@ class WorkListViewModel(
                     typeFilter = controls.typeFilter,
                     statusFilter = controls.statusFilter,
                     priorityFilter = controls.priorityFilter,
+                    attachmentPurposeFilter = controls.attachmentPurposeFilter,
                     overdueOnly = controls.overdueOnly,
                     githubOnly = controls.githubOnly,
                     withLogsOnly = controls.withLogsOnly,
@@ -75,6 +77,10 @@ class WorkListViewModel(
 
     fun setPriorityFilter(value: Priority?) {
         _controls.value = _controls.value.copy(priorityFilter = value)
+    }
+
+    fun setAttachmentPurposeFilter(value: AttachmentPurpose?) {
+        _controls.value = _controls.value.copy(attachmentPurposeFilter = value)
     }
 
     fun setOverdueOnly(value: Boolean) {
@@ -164,6 +170,10 @@ class WorkListViewModel(
         return attachments.any { it is GitHubRepositoryLink }
     }
 
+    private fun WorkItem.hasAttachmentPurpose(purpose: AttachmentPurpose): Boolean {
+        return attachments.any { it.purpose == purpose }
+    }
+
     private fun List<WorkItem>.sortBy(sortOption: WorkListSortOption): List<WorkItem> {
         return when (sortOption) {
             WorkListSortOption.DEADLINE -> sortedWith(
@@ -186,6 +196,7 @@ class WorkListViewModel(
         val typeFilter: WorkListTypeFilter = WorkListTypeFilter.ALL,
         val statusFilter: WorkStatus? = null,
         val priorityFilter: Priority? = null,
+        val attachmentPurposeFilter: AttachmentPurpose? = null,
         val overdueOnly: Boolean = false,
         val githubOnly: Boolean = false,
         val withLogsOnly: Boolean = false,
