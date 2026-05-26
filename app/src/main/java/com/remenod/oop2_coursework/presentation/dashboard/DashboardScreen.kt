@@ -24,6 +24,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel,
     onDisciplineClick: (Long) -> Unit,
     onTaskClick: (Long) -> Unit,
+    onSearchTasks: () -> Unit,
     onViewDisciplines: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -33,6 +34,9 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Dashboard") },
                 actions = {
+                    IconButton(onClick = onSearchTasks) {
+                        Icon(Icons.Default.Search, contentDescription = "Search tasks")
+                    }
                     IconButton(onClick = onViewDisciplines) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Disciplines")
                     }
@@ -56,37 +60,57 @@ fun DashboardScreen(
                     DashboardSummaryHeader(uiState)
                 }
 
-                item {
-                    DashboardStatGrid(uiState)
-                }
-
-                item {
-                    ProgressOverviewCard(uiState)
-                }
-
-                if (uiState.atRiskTasks.isNotEmpty()) {
+                if (uiState.totalTasks == 0) {
                     item {
-                        DashboardSectionTitle(
-                            title = "At risk",
-                            icon = Icons.Default.Warning,
-                            color = MaterialTheme.colorScheme.error
+                        EmptyDashboardState(
+                            onSearchTasks = onSearchTasks,
+                            onViewDisciplines = onViewDisciplines
                         )
                     }
-                    items(uiState.atRiskTasks) { task ->
-                        DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
-                    }
-                }
-
-                if (uiState.highPriorityTasks.isNotEmpty()) {
+                } else {
                     item {
-                        DashboardSectionTitle(
-                            title = "High priority",
-                            icon = Icons.Default.PriorityHigh,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        DashboardStatGrid(uiState)
                     }
-                    items(uiState.highPriorityTasks) { task ->
-                        DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
+
+                    item {
+                        ProgressOverviewCard(uiState)
+                    }
+
+                    item {
+                        OutlinedButton(
+                            onClick = onSearchTasks,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Search all tasks")
+                        }
+                    }
+
+                    if (uiState.atRiskTasks.isNotEmpty()) {
+                        item {
+                            DashboardSectionTitle(
+                                title = "At risk",
+                                icon = Icons.Default.Warning,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        items(uiState.atRiskTasks) { task ->
+                            DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
+                        }
+                    }
+
+                    if (uiState.highPriorityTasks.isNotEmpty()) {
+                        item {
+                            DashboardSectionTitle(
+                                title = "High priority",
+                                icon = Icons.Default.PriorityHigh,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        items(uiState.highPriorityTasks) { task ->
+                            DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
+                        }
                     }
                 }
 
@@ -110,6 +134,40 @@ fun DashboardScreen(
                         Spacer(Modifier.width(8.dp))
                         Text("Manage disciplines")
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyDashboardState(
+    onSearchTasks: () -> Unit,
+    onViewDisciplines: () -> Unit
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Dashboard,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(32.dp)
+            )
+            Text("No study workload yet", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onSearchTasks) {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Search")
+                }
+                Button(onClick = onViewDisciplines) {
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Disciplines")
                 }
             }
         }

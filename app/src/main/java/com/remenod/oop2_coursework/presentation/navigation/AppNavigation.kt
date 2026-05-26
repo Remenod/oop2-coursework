@@ -12,6 +12,8 @@ import com.remenod.oop2_coursework.presentation.dashboard.DashboardScreen
 import com.remenod.oop2_coursework.presentation.dashboard.DashboardViewModel
 import com.remenod.oop2_coursework.presentation.discipline.DisciplineListScreen
 import com.remenod.oop2_coursework.presentation.discipline.DisciplineListViewModel
+import com.remenod.oop2_coursework.presentation.search.TaskSearchScreen
+import com.remenod.oop2_coursework.presentation.search.TaskSearchViewModel
 import com.remenod.oop2_coursework.presentation.workdetail.WorkDetailScreen
 import com.remenod.oop2_coursework.presentation.workdetail.WorkDetailViewModel
 import com.remenod.oop2_coursework.presentation.worklist.WorkListScreen
@@ -33,7 +35,18 @@ fun AppNavHost(appContainer: AppContainer) {
                 viewModel = viewModel,
                 onDisciplineClick = { id -> navController.navigate("workList/$id") },
                 onTaskClick = { id -> navController.navigate("workDetail/$id") },
+                onSearchTasks = { navController.navigate("taskSearch") },
                 onViewDisciplines = { navController.navigate("disciplineList") }
+            )
+        }
+        composable(route = "taskSearch") {
+            val viewModel: TaskSearchViewModel = viewModel(
+                factory = ViewModelFactory { TaskSearchViewModel(appContainer.repository) }
+            )
+            TaskSearchScreen(
+                viewModel = viewModel,
+                onTaskClick = { id -> navController.navigate("workDetail/$id") },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(

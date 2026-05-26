@@ -21,6 +21,11 @@ class DashboardViewModel(
                 DashboardUiState(totalTasks = 0)
             } else {
                 val statusCounts = analyticsService.countByStatus(disciplines)
+                val atRiskItems = analyticsService.getAtRiskItems(disciplines).take(5)
+                val atRiskIds = atRiskItems.map { it.id }.toSet()
+                val highPriorityItems = analyticsService.getHighPriorityActiveItems(disciplines)
+                    .filterNot { it.id in atRiskIds }
+                    .take(5)
                 
                 DashboardUiState(
                     totalTasks = analyticsService.countTotalTasks(disciplines),
@@ -40,8 +45,8 @@ class DashboardViewModel(
                         analyticsService.calculateTotalLoggedMinutes(disciplines)
                     ),
                     disciplineSummaries = disciplines.map { it.toDashboardUiModel() },
-                    atRiskTasks = analyticsService.getAtRiskItems(disciplines).take(5).map { it.toDashboardTaskUiModel(disciplines) },
-                    highPriorityTasks = analyticsService.getHighPriorityActiveItems(disciplines).take(5).map { it.toDashboardTaskUiModel(disciplines) }
+                    atRiskTasks = atRiskItems.map { it.toDashboardTaskUiModel(disciplines) },
+                    highPriorityTasks = highPriorityItems.map { it.toDashboardTaskUiModel(disciplines) }
                 )
             }
         }
