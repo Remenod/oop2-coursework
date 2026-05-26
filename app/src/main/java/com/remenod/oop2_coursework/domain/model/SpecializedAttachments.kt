@@ -93,3 +93,17 @@ class GoogleClassroomLink(
         println("Submitting work to Google Classroom: $url")
     }
 }
+
+class GenericWebLink(
+    id: Long,
+    title: String,
+    url: String
+) : LinkAttachment(id, title, url) {
+    override fun open() {
+        println("Opening web link: $url")
+    }
+
+    override fun getDisplayName(): String = title
+
+    override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.BROWSER
+}
