@@ -5,7 +5,6 @@ import com.remenod.oop2_coursework.domain.model.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDateTime
 
 class PersistenceMapperTest {
 
