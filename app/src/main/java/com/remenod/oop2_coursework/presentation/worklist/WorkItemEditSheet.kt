@@ -1,6 +1,5 @@
 package com.remenod.oop2_coursework.presentation.worklist
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,7 +8,6 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -18,7 +16,6 @@ import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -37,6 +34,7 @@ fun WorkItemEditSheet(
     initialRequiredIssues: Int = 2,
     initialTests: Double = 0.0,
     allowTypeChange: Boolean = true,
+    allowDoneStatus: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (WorkItemEditResult) -> Unit
 ) {
@@ -67,7 +65,7 @@ fun WorkItemEditSheet(
     var reqCommits by rememberSaveable { mutableStateOf(initialRequiredCommits.toString()) }
     var issues by rememberSaveable { mutableStateOf(initialIssues.toString()) }
     var reqIssues by rememberSaveable { mutableStateOf(initialRequiredIssues.toString()) }
-    var tests by rememberSaveable { mutableFloatStateOf(initialTests.toFloat()) }
+    var tests by rememberSaveable { mutableStateOf(initialTests.toFloat()) }
 
     val deadlineValid = DateTimeUiFormatter.isValidInput(deadlineInput)
     val parsedDeadline = DateTimeUiFormatter.parseInput(deadlineInput)
@@ -165,7 +163,10 @@ fun WorkItemEditSheet(
                     onValueChange = { estimatedMinutes = it.filter { c -> c.isDigit() } },
                     label = { Text("Estimate (min)") },
                     modifier = Modifier.weight(1f),
-                    isError = !estimatedValid
+                    isError = !estimatedValid,
+                    supportingText = {
+                        if (!estimatedValid) Text("Use zero or a positive number")
+                    }
                 )
                 
                 OutlinedTextField(
@@ -175,6 +176,9 @@ fun WorkItemEditSheet(
                     modifier = Modifier.weight(2f),
                     isError = !deadlineValid,
                     placeholder = { Text("yyyy-MM-dd HH:mm") },
+                    supportingText = {
+                        if (!deadlineValid) Text("Use yyyy-MM-dd HH:mm or leave empty")
+                    },
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.CalendarToday, contentDescription = "Select date")
@@ -260,7 +264,7 @@ fun WorkItemEditSheet(
     }
 
     if (showDatePicker) {
-        val initialMillis = parsedDeadline?.atZone(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+        val initialMillis = parsedDeadline?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },

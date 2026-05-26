@@ -7,7 +7,6 @@ import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 
 class WorkListViewModel(
     private val repository: TaskRepository,
@@ -19,7 +18,7 @@ class WorkListViewModel(
     val uiState: StateFlow<WorkListUiState> = repository.observeDiscipline(disciplineId)
         .combine(_actionError) { discipline, actionError ->
             if (discipline == null) {
-                WorkListUiState(error = "Discipline not found")
+                WorkListUiState(error = "Discipline not found", actionError = actionError)
             } else {
                 WorkListUiState(
                     disciplineName = discipline.name,
