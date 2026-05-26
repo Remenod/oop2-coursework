@@ -51,11 +51,96 @@ class WorkDetailViewModel(
         }
     }
 
-    fun addSubTask(title: String, description: String, type: WorkItemType, priority: Priority, totalPages: Int?) {
+    fun updateProgrammingStats(commitsCount: Int, issuesResolved: Int, testsPassed: Double) {
+        if (commitsCount < 0 || issuesResolved < 0 || testsPassed !in 0.0..1.0) return
+
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is ProgrammingTask) {
+                    item.commitsCount = commitsCount
+                    item.issuesResolved = issuesResolved
+                    item.testsPassed = testsPassed
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun addExamTopic(name: String, confidence: Int) {
+        if (name.isBlank() || confidence !in 0..100) return
+
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is ExamTask) {
+                    item.topics.add(ExamTopic(name, confidence))
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun updateExamTopic(index: Int, confidence: Int) {
+        if (confidence !in 0..100) return
+
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is ExamTask && index in item.topics.indices) {
+                    val topic = item.topics[index]
+                    item.topics[index] = topic.copy(confidence = confidence)
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun removeExamTopic(index: Int) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is ExamTask && index in item.topics.indices) {
+                    item.topics.removeAt(index)
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun toggleSeminarStage(stage: SeminarStageType) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                if (item is SeminarTask) {
+                    when (stage) {
+                        SeminarStageType.TOPIC_SELECTED -> item.topicSelected = !item.topicSelected
+                        SeminarStageType.MATERIALS_COLLECTED -> item.materialsCollected = !item.materialsCollected
+                        SeminarStageType.SPEECH_PREPARED -> item.speechPrepared = !item.speechPrepared
+                        SeminarStageType.SLIDES_PREPARED -> item.slidesPrepared = !item.slidesPrepared
+                        SeminarStageType.REHEARSAL_DONE -> item.rehearsalDone = !item.rehearsalDone
+                    }
+                    repository.updateWorkItem(item)
+                }
+            }
+        }
+    }
+
+    fun addSubTask(title: String, description: String, type: WorkItemType, priority: Priority, initialData: Map<String, Any>) {
         viewModelScope.launch {
             val item = when (type) {
                 WorkItemType.PROJECT -> ProjectTask(0, title, description)
-                WorkItemType.READING -> ReadingTask(0, title, description, totalPages = totalPages ?: 100)
+                WorkItemType.READING -> ReadingTask(
+                    id = 0,
+                    title = title,
+                    description = description,
+                    totalPages = initialData["totalPages"] as? Int ?: 100
+                )
+                WorkItemType.PROGRAMMING -> ProgrammingTask(
+                    id = 0,
+                    title = title,
+                    description = description,
+                    commitsCount = initialData["commitsCount"] as? Int ?: 0,
+                    issuesResolved = initialData["issuesResolved"] as? Int ?: 0,
+                    testsPassed = initialData["testsPassed"] as? Double ?: 0.0
+                )
+                WorkItemType.EXAM -> ExamTask(0, title, description)
+                WorkItemType.SEMINAR -> SeminarTask(0, title, description)
                 else -> GenericTask(0, title, description)
             }.apply { this.priority = priority }
             
@@ -105,6 +190,17 @@ class WorkDetailViewModel(
             canBeCompleted = canBeCompleted(),
             readPages = (this as? ReadingTask)?.readPages,
             totalPages = (this as? ReadingTask)?.totalPages,
+            commitsCount = (this as? ProgrammingTask)?.commitsCount,
+            issuesResolved = (this as? ProgrammingTask)?.issuesResolved,
+            testsPassed = (this as? ProgrammingTask)?.testsPassed,
+            examTopics = (this as? ExamTask)?.topics?.mapIndexed { i, t ->
+                ExamTopicUiModel(i, t.name, t.confidence)
+            } ?: emptyList(),
+            seminarStages = (this as? SeminarTask)?.let {
+                SeminarStagesUiModel(
+                    it.topicSelected, it.materialsCollected, it.speechPrepared, it.slidesPrepared, it.rehearsalDone
+                )
+            },
             checklist = if (this is AtomicWorkItem) {
                 checklist.map { ChecklistUiModel(it.text, it.isCompleted) }
             } else emptyList(),
