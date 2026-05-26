@@ -29,3 +29,12 @@ enum class AttachmentOpenMode {
     CLOUD,
     EXTERNAL_APP
 }
+
+enum class WorkItemType {
+    GENERIC,
+    PROGRAMMING,
+    EXAM,
+    SEMINAR,
+    READING,
+    PROJECT
+}
