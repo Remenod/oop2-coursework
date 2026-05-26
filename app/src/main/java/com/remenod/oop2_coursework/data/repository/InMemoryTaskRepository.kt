@@ -21,7 +21,7 @@ class InMemoryTaskRepository : TaskRepository {
         }
 
     override suspend fun addDiscipline(discipline: Discipline) {
-        _disciplines.value = _disciplines.value + discipline
+        _disciplines.value += discipline
     }
 
     override suspend fun addWorkItem(disciplineId: Long, item: WorkItem) {
