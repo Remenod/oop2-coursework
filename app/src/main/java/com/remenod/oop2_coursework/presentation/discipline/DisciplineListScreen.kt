@@ -5,10 +5,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,10 +24,17 @@ fun DisciplineListScreen(
     onDisciplineClick: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editingDiscipline by remember { mutableStateOf<DisciplineCardUiModel?>(null) }
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("My Disciplines") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
         }
     ) { padding ->
         if (uiState.isLoading) {
@@ -41,17 +50,46 @@ fun DisciplineListScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(uiState.disciplines) { discipline ->
-                    DisciplineCard(discipline, onClick = { onDisciplineClick(discipline.id) })
+                    DisciplineCard(
+                        discipline = discipline, 
+                        onClick = { onDisciplineClick(discipline.id) },
+                        onEdit = { editingDiscipline = discipline },
+                        onDelete = { viewModel.deleteDiscipline(discipline.id) }
+                    )
                 }
             }
         }
+    }
+
+    if (showAddDialog) {
+        DisciplineEditDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { name, teacher, semester, color ->
+                viewModel.addDiscipline(name, teacher, semester, color)
+            }
+        )
+    }
+
+    editingDiscipline?.let { discipline ->
+        DisciplineEditDialog(
+            initialName = discipline.name,
+            initialTeacher = discipline.teacherName,
+            initialSemester = 1, // Simplified
+            initialColor = discipline.color,
+            onDismiss = { editingDiscipline = null },
+            onConfirm = { name, teacher, semester, color ->
+                viewModel.updateDiscipline(discipline.id, name, teacher, semester, color)
+            }
+        )
     }
 }
 
 @Composable
 fun DisciplineCard(
     discipline: DisciplineCardUiModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -75,11 +113,20 @@ fun DisciplineCard(
                     .padding(16.dp)
                     .weight(1f)
             ) {
-                Text(
-                    text = discipline.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = discipline.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    }
+                }
                 Text(
                     text = discipline.teacherName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -92,7 +139,7 @@ fun DisciplineCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         LinearProgressIndicator(
-                            progress = discipline.progressPercent.toFloat(),
+                            progress = { discipline.progressPercent.toFloat() },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
