@@ -29,11 +29,26 @@ class WorkListViewModel(
             initialValue = WorkListUiState(isLoading = true)
         )
 
-    fun addTask(title: String, description: String, type: WorkItemType, priority: Priority, totalPages: Int?) {
+    fun addTask(title: String, description: String, type: WorkItemType, priority: Priority, initialData: Map<String, Any>) {
         viewModelScope.launch {
             val item = when (type) {
                 WorkItemType.PROJECT -> ProjectTask(0, title, description)
-                WorkItemType.READING -> ReadingTask(0, title, description, totalPages = totalPages ?: 100)
+                WorkItemType.READING -> ReadingTask(
+                    id = 0,
+                    title = title,
+                    description = description,
+                    totalPages = initialData["totalPages"] as? Int ?: 100
+                )
+                WorkItemType.PROGRAMMING -> ProgrammingTask(
+                    id = 0,
+                    title = title,
+                    description = description,
+                    commitsCount = initialData["commitsCount"] as? Int ?: 0,
+                    issuesResolved = initialData["issuesResolved"] as? Int ?: 0,
+                    testsPassed = initialData["testsPassed"] as? Double ?: 0.0
+                )
+                WorkItemType.EXAM -> ExamTask(0, title, description)
+                WorkItemType.SEMINAR -> SeminarTask(0, title, description)
                 else -> GenericTask(0, title, description)
             }.apply { this.priority = priority }
             
