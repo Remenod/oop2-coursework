@@ -57,7 +57,19 @@ fun WorkListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (uiState.actionError != null) {
+                    item {
+                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
+                            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = uiState.actionError!!, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { viewModel.clearActionError() }) { Text("X") }
+                            }
+                        }
+                    }
+                }
+                
                 items(uiState.items) { item ->
+// ...
                     WorkItemCard(
                         item = item, 
                         onClick = { onWorkItemClick(item.id) },

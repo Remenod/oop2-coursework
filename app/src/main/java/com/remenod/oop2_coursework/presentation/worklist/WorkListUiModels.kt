@@ -21,5 +21,6 @@ data class WorkListUiState(
     val isLoading: Boolean = false,
     val disciplineName: String = "",
     val items: List<WorkItemCardUiModel> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val actionError: String? = null
 )
