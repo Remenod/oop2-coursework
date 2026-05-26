@@ -45,6 +45,12 @@ fun WorkItemEditSheet(
     var selectedType by rememberSaveable { mutableStateOf(initialType) }
     var selectedStatus by rememberSaveable { mutableStateOf(initialStatus) }
     var selectedPriority by rememberSaveable { mutableStateOf(initialPriority) }
+
+    LaunchedEffect(allowDoneStatus) {
+        if (!allowDoneStatus && selectedStatus == WorkStatus.DONE) {
+            selectedStatus = WorkStatus.CREATED
+        }
+    }
     
     var deadlineInput by rememberSaveable { 
         mutableStateOf(DateTimeUiFormatter.formatInput(initialDeadline)) 
@@ -124,7 +130,12 @@ fun WorkItemEditSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                WorkStatus.entries.forEach { status ->
+                val visibleStatuses = if (allowDoneStatus) {
+                    WorkStatus.entries
+                } else {
+                    WorkStatus.entries.filter { it != WorkStatus.DONE }
+                }
+                visibleStatuses.forEach { status ->
                     FilterChip(
                         selected = selectedStatus == status,
                         onClick = { selectedStatus = status },
