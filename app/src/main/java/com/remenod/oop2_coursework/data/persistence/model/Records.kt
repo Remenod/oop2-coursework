@@ -86,18 +86,21 @@ data class AttachmentRecord(
     val subType: AttachmentSubtype,
     val urlOrPath: String,
     val provider: String? = null,
+    val purpose: AttachmentPurpose = AttachmentPurpose.REFERENCE,
+    val notes: String = "",
+    val branch: String? = null,
+    val repositoryOwner: String? = null,
+    val repositoryName: String? = null,
+    val lastOpenedAt: LocalDateTime? = null,
     val createdAt: LocalDateTime
 )
 
 data class WorkLogEntryRecord(
     val id: Long,
     val workItemId: Long,
-    val timestamp: LocalDateTime,
-    val minutesSpent: Int,
-    val oldStatus: WorkStatus,
-    val newStatus: WorkStatus,
-    val progressPercent: Double,
-    val comment: String
+    val message: String,
+    val createdAt: LocalDateTime,
+    val minutesSpent: Int
 )
 
 /**

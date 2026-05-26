@@ -144,6 +144,48 @@ class InMemoryTaskRepository : TaskRepository {
         }
     }
 
+    override suspend fun addAttachment(workItemId: Long, attachment: Attachment): Attachment {
+        val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
+        requireNotNull(item) { "WorkItem not found" }
+        
+        if (attachment.id == 0L) setId(attachment, idGenerator.incrementAndGet())
+        item.addAttachment(attachment)
+        notifyChanged()
+        return attachment
+    }
+
+    override suspend fun removeAttachment(workItemId: Long, attachmentId: Long) {
+        val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
+        item?.let {
+            val attachment = it.attachments.find { a -> a.id == attachmentId }
+            if (attachment != null) {
+                it.removeAttachment(attachment)
+                notifyChanged()
+            }
+        }
+    }
+
+    override suspend fun addWorkLogEntry(workItemId: Long, entry: WorkLogEntry): WorkLogEntry {
+        val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
+        requireNotNull(item) { "WorkItem not found" }
+        
+        val finalEntry = if (entry.id == 0L) {
+            entry.copy(id = idGenerator.incrementAndGet())
+        } else entry
+        
+        item.addLog(finalEntry)
+        notifyChanged()
+        return finalEntry
+    }
+
+    override suspend fun removeWorkLogEntry(workItemId: Long, entryId: Long) {
+        val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
+        item?.let {
+            it.removeLog(entryId)
+            notifyChanged()
+        }
+    }
+
     private fun setId(obj: Any, id: Long) {
         var current: Class<*>? = obj.javaClass
         while (current != null) {

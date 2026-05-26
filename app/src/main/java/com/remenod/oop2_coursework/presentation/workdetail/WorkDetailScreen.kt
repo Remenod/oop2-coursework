@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.domain.model.*
@@ -27,8 +28,13 @@ fun WorkDetailScreen(
     onSubTaskClick: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val uriHandler = LocalUriHandler.current
+
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
+    var showAddAttachmentDialog by remember { mutableStateOf(false) }
+    var showAddLogDialog by remember { mutableStateOf(false) }
+    var showHistorySheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -106,6 +112,36 @@ fun WorkDetailScreen(
                             }
                         }
                     }
+                }
+
+                item {
+                    AttachmentSection(
+                        attachments = item.attachments,
+                        onAdd = { showAddAttachmentDialog = true },
+                        onRemove = viewModel::removeAttachment,
+                        onOpen = { attachment ->
+                            if (attachment.target.startsWith("http")) {
+                                try {
+                                    uriHandler.openUri(attachment.target)
+                                    viewModel.openAttachment(attachment.id)
+                                } catch (_: Exception) {
+                                    viewModel.openAttachment(attachment.id)
+                                }
+                            } else {
+                                viewModel.openAttachment(attachment.id)
+                            }
+                        },
+                        onSync = viewModel::syncAttachment,
+                        onSubmit = viewModel::submitAttachment
+                    )
+                }
+
+                item {
+                    WorkLogSection(
+                        summary = item.lastLogsSummary,
+                        onAdd = { showAddLogDialog = true },
+                        onViewHistory = { showHistorySheet = true }
+                    )
                 }
 
                 if (item.type != WorkItemType.PROJECT) {
@@ -194,7 +230,6 @@ fun WorkDetailScreen(
             initialEstimatedMinutes = uiState.item!!.estimatedMinutes,
             initialType = uiState.item!!.type,
             allowTypeChange = false,
-            allowDoneStatus = true,
             onDismiss = { showEditDialog = false },
             onConfirm = { result ->
                 viewModel.updateMetadata(result)
@@ -204,11 +239,33 @@ fun WorkDetailScreen(
 
     if (showAddSubTaskDialog) {
         WorkItemEditSheet(
-            allowDoneStatus = false,
             onDismiss = { showAddSubTaskDialog = false },
             onConfirm = { result ->
                 viewModel.addSubTask(result)
             }
+        )
+    }
+
+    if (showAddAttachmentDialog) {
+        AttachmentEditSheet(
+            taskType = uiState.item?.type ?: WorkItemType.GENERIC,
+            onDismiss = { showAddAttachmentDialog = false },
+            onConfirm = viewModel::addAttachment
+        )
+    }
+
+    if (showAddLogDialog) {
+        WorkLogEditSheet(
+            onDismiss = { showAddLogDialog = false },
+            onConfirm = viewModel::addManualLog
+        )
+    }
+
+    if (showHistorySheet && uiState.item != null) {
+        WorkLogHistorySheet(
+            logs = uiState.item!!.logs,
+            onDismiss = { showHistorySheet = false },
+            onRemove = viewModel::removeLogEntry
         )
     }
 }
@@ -358,11 +415,24 @@ fun ProgrammingTaskSection(
     var reqCommits by rememberSaveable(item.id, item.requiredCommits) { mutableStateOf((item.requiredCommits ?: 5).toString()) }
     var issues by rememberSaveable(item.id, item.issuesResolved) { mutableStateOf((item.issuesResolved ?: 0).toString()) }
     var reqIssues by rememberSaveable(item.id, item.requiredIssues) { mutableStateOf((item.requiredIssues ?: 2).toString()) }
-    var tests by rememberSaveable(item.id, item.testsPassed) { mutableStateOf(item.testsPassed?.toFloat() ?: 0f) }
+    var tests by rememberSaveable(item.id, item.testsPassed) { mutableFloatStateOf(item.testsPassed?.toFloat() ?: 0f) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Programming Stats", style = MaterialTheme.typography.titleSmall)
+
+            if (item.repositoryUrl != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text("Linked repository", style = MaterialTheme.typography.labelMedium)
+                        Text(item.repositoryUrl, style = MaterialTheme.typography.labelSmall)
+                        item.branch?.let { Text("Branch: $it", style = MaterialTheme.typography.labelSmall) }
+                    }
+                }
+            }
             
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
@@ -394,7 +464,7 @@ fun ProgrammingTaskSection(
 
 @Composable
 fun ExamTopicItem(topic: ExamTopicUiModel, onUpdate: (Int) -> Unit, onRemove: () -> Unit) {
-    var confidence by rememberSaveable(topic.index, topic.confidence) { mutableStateOf(topic.confidence.toFloat()) }
+    var confidence by rememberSaveable(topic.index, topic.confidence) { mutableFloatStateOf(topic.confidence.toFloat()) }
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {

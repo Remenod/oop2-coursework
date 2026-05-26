@@ -44,6 +44,8 @@ data class WorkItemDetailUiModel(
     val issuesResolved: Int? = null,
     val requiredIssues: Int? = null,
     val testsPassed: Double? = null,
+    val repositoryUrl: String? = null,
+    val branch: String? = null,
     
     // Exam
     val examTopics: List<ExamTopicUiModel> = emptyList(),
@@ -52,7 +54,12 @@ data class WorkItemDetailUiModel(
     val seminarStages: SeminarStagesUiModel? = null,
     
     val checklist: List<ChecklistUiModel> = emptyList(),
-    val subTasks: List<SubTaskUiModel> = emptyList()
+    val subTasks: List<SubTaskUiModel> = emptyList(),
+
+    // Attachments & Logs
+    val attachments: List<AttachmentUiModel> = emptyList(),
+    val logs: List<WorkLogEntryUiModel> = emptyList(),
+    val lastLogsSummary: String = ""
 )
 
 data class ChecklistUiModel(
@@ -80,4 +87,30 @@ data class SeminarStagesUiModel(
     val speechPrepared: Boolean,
     val slidesPrepared: Boolean,
     val rehearsalDone: Boolean
+)
+
+data class AttachmentUiModel(
+    val id: Long,
+    val title: String,
+    val typeLabel: String,
+    val subtypeLabel: String,
+    val purposeLabel: String,
+    val target: String,
+    val notes: String,
+    val createdAtText: String,
+    val lastOpenedText: String,
+    val canSync: Boolean,
+    val canSubmit: Boolean,
+    val syncHint: String?,
+    val providerLabel: String?,
+    val branchLabel: String?,
+    val repositoryFullName: String?
+)
+
+data class WorkLogEntryUiModel(
+    val id: Long,
+    val message: String,
+    val minutesSpent: Int,
+    val minutesSpentText: String,
+    val createdAtText: String
 )

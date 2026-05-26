@@ -9,6 +9,8 @@ class ProgrammingTask(
     var issuesResolved: Int = 0,
     var requiredIssues: Int = 2,
     var testsPassed: Double = 0.0, // 0.0 to 1.0
+    var repositoryUrl: String? = null,
+    var branch: String? = null,
     estimatedMinutes: Int = 0
 ) : AtomicWorkItem(id, title, description, estimatedMinutes = estimatedMinutes) {
     

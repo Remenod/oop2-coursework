@@ -5,7 +5,6 @@ import com.remenod.oop2_coursework.domain.model.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDateTime
 
 class PersistenceMapperTest {
 
@@ -21,7 +20,7 @@ class PersistenceMapperTest {
         ).apply {
             addChecklistItem(ChecklistItem("Check 1", true))
             addAttachment(GitHubRepositoryLink(10L, "Repo", "url"))
-            addLog(WorkLogEntry(100L, 1L, LocalDateTime.now(), 30, WorkStatus.CREATED, WorkStatus.IN_PROGRESS, 0.2, "Started"))
+            addLog(WorkLogEntry(100L, "Started", minutesSpent = 30))
         }
 
         // 1. Decompose

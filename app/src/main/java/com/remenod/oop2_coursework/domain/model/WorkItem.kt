@@ -78,6 +78,11 @@ abstract class WorkItem(
         touch()
     }
 
+    fun removeLog(id: Long) {
+        _logs.removeIf { it.id == id }
+        touch()
+    }
+
     fun isOverdue(now: LocalDateTime = LocalDateTime.now()): Boolean {
         return deadline != null && 
                 deadline!!.isBefore(now) && 

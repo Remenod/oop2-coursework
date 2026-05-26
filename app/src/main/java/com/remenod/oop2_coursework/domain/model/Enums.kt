@@ -52,6 +52,19 @@ enum class AttachmentSubtype {
     UNKNOWN
 }
 
+enum class AttachmentPurpose {
+    SOURCE_CODE,
+    ASSIGNMENT_BRIEF,
+    REFERENCE,
+    SUBMISSION,
+    DATASET,
+    RUBRIC,
+    NOTES,
+    OUTPUT_ARTIFACT,
+    LOCAL_RESOURCE,
+    CLOUD_RESOURCE
+}
+
 enum class SeminarStageType {
     TOPIC_SELECTED,
     MATERIALS_COLLECTED,
