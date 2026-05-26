@@ -11,7 +11,10 @@ data class WorkItemCardUiModel(
     val status: WorkStatus,
     val progressPercent: Double,
     val progressExplanation: String,
-    val isOverdue: Boolean
+    val isOverdue: Boolean,
+    val deadlineText: String,
+    val timeLeftText: String,
+    val estimatedTimeText: String
 )
 
 data class WorkListUiState(

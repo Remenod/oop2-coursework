@@ -3,11 +3,13 @@ package com.remenod.oop2_coursework.presentation.workdetail
 import com.remenod.oop2_coursework.domain.model.Priority
 import com.remenod.oop2_coursework.domain.model.WorkItemType
 import com.remenod.oop2_coursework.domain.model.WorkStatus
+import java.time.LocalDateTime
 
 data class WorkDetailUiState(
     val isLoading: Boolean = false,
     val item: WorkItemDetailUiModel? = null,
-    val error: String? = null
+    val error: String? = null,
+    val actionError: String? = null
 )
 
 data class WorkItemDetailUiModel(
@@ -18,7 +20,16 @@ data class WorkItemDetailUiModel(
     val priority: Priority,
     val type: WorkItemType,
     val typeName: String,
-    val deadline: String,
+    
+    val deadline: LocalDateTime?,
+    val deadlineText: String,
+    val createdAtText: String,
+    val updatedAtText: String,
+    val estimatedMinutes: Int,
+    val estimatedTimeText: String,
+    val isOverdue: Boolean,
+    val timeLeftText: String,
+
     val progressPercent: Double,
     val progressExplanation: String,
     val canBeCompleted: Boolean,
