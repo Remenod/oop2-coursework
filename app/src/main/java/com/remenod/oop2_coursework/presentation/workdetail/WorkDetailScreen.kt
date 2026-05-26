@@ -31,6 +31,7 @@ fun WorkDetailScreen(
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
     var showAddAttachmentDialog by remember { mutableStateOf(false) }
     var showAddLogDialog by remember { mutableStateOf(false) }
+    var showHistorySheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -121,9 +122,9 @@ fun WorkDetailScreen(
 
                 item {
                     WorkLogSection(
-                        logs = item.logs,
+                        summary = item.lastLogsSummary,
                         onAdd = { showAddLogDialog = true },
-                        onRemove = viewModel::removeLogEntry
+                        onViewHistory = { showHistorySheet = true }
                     )
                 }
 
@@ -240,6 +241,14 @@ fun WorkDetailScreen(
         WorkLogEditSheet(
             onDismiss = { showAddLogDialog = false },
             onConfirm = viewModel::addManualLog
+        )
+    }
+
+    if (showHistorySheet && uiState.item != null) {
+        WorkLogHistorySheet(
+            logs = uiState.item!!.logs,
+            onDismiss = { showHistorySheet = false },
+            onRemove = viewModel::removeLogEntry
         )
     }
 }
@@ -389,7 +398,7 @@ fun ProgrammingTaskSection(
     var reqCommits by rememberSaveable(item.id, item.requiredCommits) { mutableStateOf((item.requiredCommits ?: 5).toString()) }
     var issues by rememberSaveable(item.id, item.issuesResolved) { mutableStateOf((item.issuesResolved ?: 0).toString()) }
     var reqIssues by rememberSaveable(item.id, item.requiredIssues) { mutableStateOf((item.requiredIssues ?: 2).toString()) }
-    var tests by rememberSaveable(item.id, item.testsPassed) { mutableStateOf(item.testsPassed?.toFloat() ?: 0f) }
+    var tests by rememberSaveable(item.id, item.testsPassed) { mutableFloatStateOf(item.testsPassed?.toFloat() ?: 0f) }
 
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -425,7 +434,7 @@ fun ProgrammingTaskSection(
 
 @Composable
 fun ExamTopicItem(topic: ExamTopicUiModel, onUpdate: (Int) -> Unit, onRemove: () -> Unit) {
-    var confidence by rememberSaveable(topic.index, topic.confidence) { mutableStateOf(topic.confidence.toFloat()) }
+    var confidence by rememberSaveable(topic.index, topic.confidence) { mutableFloatStateOf(topic.confidence.toFloat()) }
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {

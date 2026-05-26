@@ -317,6 +317,8 @@ class WorkDetailViewModel(
             else -> WorkItemType.GENERIC
         }
         
+        val sortedLogs = logs.sortedByDescending { it.createdAt }
+        
         return WorkItemDetailUiModel(
             id = id,
             title = title,
@@ -365,7 +367,8 @@ class WorkDetailViewModel(
             } else emptyList(),
 
             attachments = attachments.map { it.toUiModel() },
-            logs = logs.sortedByDescending { it.createdAt }.map { it.toUiModel() }
+            logs = sortedLogs.map { it.toUiModel() },
+            lastLogsSummary = if (sortedLogs.isEmpty()) "No activity" else "Last action: ${sortedLogs.first().message}"
         )
     }
 
