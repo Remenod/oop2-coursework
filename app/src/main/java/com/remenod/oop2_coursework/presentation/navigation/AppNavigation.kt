@@ -8,8 +8,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.remenod.oop2_coursework.AppContainer
+import com.remenod.oop2_coursework.presentation.dashboard.DashboardScreen
+import com.remenod.oop2_coursework.presentation.dashboard.DashboardViewModel
 import com.remenod.oop2_coursework.presentation.discipline.DisciplineListScreen
 import com.remenod.oop2_coursework.presentation.discipline.DisciplineListViewModel
+import com.remenod.oop2_coursework.presentation.search.TaskSearchScreen
+import com.remenod.oop2_coursework.presentation.search.TaskSearchViewModel
 import com.remenod.oop2_coursework.presentation.workdetail.WorkDetailScreen
 import com.remenod.oop2_coursework.presentation.workdetail.WorkDetailViewModel
 import com.remenod.oop2_coursework.presentation.worklist.WorkListScreen
@@ -20,10 +24,33 @@ import com.remenod.oop2_coursework.presentation.common.ViewModelFactory
 fun AppNavHost(appContainer: AppContainer) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "disciplineList") {
+    NavHost(navController = navController, startDestination = "dashboard") {
+        composable(route = "dashboard") {
+            val viewModel: DashboardViewModel = viewModel(
+                factory = ViewModelFactory { 
+                    DashboardViewModel(appContainer.repository, appContainer.analyticsService) 
+                }
+            )
+            DashboardScreen(
+                viewModel = viewModel,
+                onDisciplineClick = { id -> navController.navigate("workList/$id") },
+                onTaskClick = { id -> navController.navigate("workDetail/$id") },
+                onSearchTasks = { navController.navigate("taskSearch") },
+                onViewDisciplines = { navController.navigate("disciplineList") }
+            )
+        }
+        composable(route = "taskSearch") {
+            val viewModel: TaskSearchViewModel = viewModel(
+                factory = ViewModelFactory { TaskSearchViewModel(appContainer.repository) }
+            )
+            TaskSearchScreen(
+                viewModel = viewModel,
+                onTaskClick = { id -> navController.navigate("workDetail/$id") },
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable(
             route = "disciplineList",
-            arguments = emptyList(),
             content = { _ ->
                 val viewModel: DisciplineListViewModel = viewModel(
                     factory = ViewModelFactory { DisciplineListViewModel(appContainer.repository) }
