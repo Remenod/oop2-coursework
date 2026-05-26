@@ -1,6 +1,7 @@
 package com.remenod.oop2_coursework.data.repository
 
 import com.remenod.oop2_coursework.domain.model.*
+import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditResult
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
@@ -222,5 +223,50 @@ class InMemoryTaskRepositoryTest {
         
         assertEquals(1, discipline.getOverdueItems().size)
         assertEquals(11L, discipline.getOverdueItems().first().id)
+    }
+
+    @Test
+    fun testCreateTaskWithDoneStatusFailsValidation() = runTest {
+        repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
+        val result = WorkItemEditResult(
+            title = "Task", description = "D", type = WorkItemType.PROGRAMMING,
+            status = WorkStatus.DONE, priority = Priority.NORMAL, deadline = null, estimatedMinutes = 10,
+            requiredCommits = 5, commitsCount = 0 // Not ready
+        )
+        
+        try {
+            val item = WorkItemFactory.createFrom(result)
+            repository.addRootWorkItem(1L, item)
+            fail("Should throw IllegalStateException")
+        } catch (_: IllegalStateException) {}
+    }
+
+    @Test
+    fun testProgrammingTaskCompletionTargets() = runTest {
+        val task = ProgrammingTask(0, "P", "D", requiredCommits = 10, requiredIssues = 5)
+        assertFalse(task.canBeCompleted())
+        
+        task.commitsCount = 10
+        task.issuesResolved = 5
+        task.testsPassed = 1.0
+        assertTrue(task.canBeCompleted())
+    }
+
+    @Test
+    fun testProjectProgressExcludesCancelled() = runTest {
+        val project = ProjectTask(1L, "P", "D")
+        val task1 = GenericTask(2L, "T1", "D").apply { 
+            status = WorkStatus.DONE 
+        }
+        val task2 = GenericTask(3L, "T2", "D").apply { 
+            status = WorkStatus.CANCELLED
+        }
+        
+        project.addSubTask(task1)
+        project.addSubTask(task2)
+        
+        // Only task 1 is active and DONE -> 100%
+        assertEquals(1.0, project.getProgress(), 0.01)
+        assertTrue(project.getProgressSnapshot().explanation.contains("1 active"))
     }
 }

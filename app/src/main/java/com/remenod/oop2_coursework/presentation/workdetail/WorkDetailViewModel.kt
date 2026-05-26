@@ -8,7 +8,6 @@ import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
 import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 
 class WorkDetailViewModel(
     private val repository: TaskRepository,
@@ -76,6 +75,11 @@ class WorkDetailViewModel(
     }
 
     fun updateProgrammingStats(commitsCount: Int, requiredCommits: Int, issuesResolved: Int, requiredIssues: Int, testsPassed: Double) {
+        if (commitsCount < 0 || requiredCommits < 0 || issuesResolved < 0 || requiredIssues < 0 || testsPassed !in 0.0..1.0) {
+            _actionError.value = "Invalid programming stats"
+            return
+        }
+
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ProgrammingTask) {
@@ -94,6 +98,10 @@ class WorkDetailViewModel(
 
     fun addExamTopic(name: String, confidence: Int) {
         if (name.isBlank()) return
+        if (confidence !in 0..100) {
+            _actionError.value = "Confidence must be between 0 and 100"
+            return
+        }
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask) {
@@ -106,6 +114,10 @@ class WorkDetailViewModel(
     }
 
     fun updateExamTopic(index: Int, confidence: Int) {
+        if (confidence !in 0..100) {
+            _actionError.value = "Confidence must be between 0 and 100"
+            return
+        }
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask && index in item.topics.indices) {
@@ -202,36 +214,13 @@ class WorkDetailViewModel(
 
     fun addSubTask(result: WorkItemEditResult) {
         viewModelScope.launch {
-            val item = when (result.type) {
-                WorkItemType.PROJECT -> ProjectTask(0, result.title, result.description)
-                WorkItemType.READING -> ReadingTask(
-                    id = 0,
-                    title = result.title,
-                    description = result.description,
-                    totalPages = result.totalPages ?: 100
-                )
-                WorkItemType.PROGRAMMING -> ProgrammingTask(
-                    id = 0,
-                    title = result.title,
-                    description = result.description,
-                    commitsCount = result.commitsCount ?: 0,
-                    requiredCommits = result.requiredCommits ?: 5,
-                    issuesResolved = result.issuesResolved ?: 0,
-                    requiredIssues = result.requiredIssues ?: 2,
-                    testsPassed = result.testsPassed ?: 0.0
-                )
-                WorkItemType.EXAM -> ExamTask(0, result.title, result.description)
-                WorkItemType.SEMINAR -> SeminarTask(0, result.title, result.description)
-                else -> GenericTask(0, result.title, result.description)
-            }.apply {
-                this.priority = result.priority
-                this.status = result.status
-                this.deadline = result.deadline
-                this.estimatedMinutes = result.estimatedMinutes
-                this.touch()
+            try {
+                val item = WorkItemFactory.createFrom(result)
+                repository.addSubTask(workItemId, item)
+                _actionError.value = null
+            } catch (e: Exception) {
+                _actionError.value = e.message ?: "Could not add subtask"
             }
-            
-            repository.addSubTask(workItemId, item)
         }
     }
 
