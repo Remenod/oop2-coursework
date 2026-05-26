@@ -1,8 +1,12 @@
 package com.remenod.oop2_coursework.data.repository
 
 import com.remenod.oop2_coursework.domain.model.*
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -17,73 +21,79 @@ class InMemoryTaskRepositoryTest {
     }
 
     @Test
-    fun testAddDisciplineGeneratesId() = runTest {
+    fun testAddDisciplineGeneratesIdAndReturns() = runTest {
         val discipline = Discipline(0, "Test", "Teacher", 1, 0)
-        repository.addDiscipline(discipline)
+        val created = repository.addDiscipline(discipline)
         
+        assertNotEquals(0L, created.id)
         val list = repository.observeDisciplines().first()
         assertEquals(1, list.size)
-        assertNotEquals(0L, list.first().id)
+        assertEquals(created.id, list.first().id)
     }
 
     @Test
-    fun testAddRootWorkItem() = runTest {
+    fun testAddRootWorkItemReturnsWithId() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
         val task = GenericTask(0, "Task", "Desc")
         
-        repository.addRootWorkItem(1L, task)
+        val created = repository.addRootWorkItem(1L, task)
         
+        assertNotEquals(0L, created.id)
         val discipline = repository.observeDiscipline(1L).first()
         assertEquals(1, discipline?.workItems?.size)
-        assertNotEquals(0L, discipline?.workItems?.first()?.id)
+        assertEquals(created.id, discipline?.workItems?.first()?.id)
     }
 
     @Test
-    fun testAddSubTask() = runTest {
+    fun testAddSubTaskToProject() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
         val project = ProjectTask(10L, "Project", "Desc")
         repository.addRootWorkItem(1L, project)
         
         val subTask = GenericTask(0, "Sub", "Desc")
-        repository.addSubTask(10L, subTask)
+        val createdSub = repository.addSubTask(10L, subTask)
         
+        assertNotEquals(0L, createdSub.id)
         val restoredProject = repository.observeWorkItem(10L).first() as ProjectTask
         assertEquals(1, restoredProject.subTasks.size)
-        assertNotEquals(0L, restoredProject.subTasks.first().id)
+        assertEquals(createdSub.id, restoredProject.subTasks.first().id)
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun testAddSubTaskToAtomicFails() = runTest {
+    fun testAddSubTaskToGenericFails() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
-        val atomic = GenericTask(10L, "Atomic", "Desc")
-        repository.addRootWorkItem(1L, atomic)
+        val generic = GenericTask(10L, "Generic", "Desc")
+        repository.addRootWorkItem(1L, generic)
         
         val subTask = GenericTask(0, "Sub", "Desc")
         repository.addSubTask(10L, subTask)
     }
 
     @Test
-    fun testRecursiveDelete() = runTest {
+    fun testRecursiveDeleteAndCleanup() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
-        val project = ProjectTask(10L, "Project", "Desc")
-        val subTask = GenericTask(11L, "Sub", "Desc")
+        val project = ProjectTask(10L, "Parent", "Desc")
+        val child = ProjectTask(11L, "Child", "Desc")
+        val grandChild = GenericTask(12L, "GrandChild", "Desc")
         
         repository.addRootWorkItem(1L, project)
-        repository.addSubTask(10L, subTask)
+        repository.addSubTask(10L, child)
+        repository.addSubTask(11L, grandChild)
         
-        // Verify both exist
-        assertNotNull(repository.observeWorkItem(11L).first())
+        // Delete middle node
+        repository.deleteWorkItem(11L)
         
-        // Delete parent
-        repository.deleteWorkItem(10L)
-        
-        // Verify both gone
-        assertNull(repository.observeWorkItem(10L).first())
+        // Verify child and grandchild are gone
         assertNull(repository.observeWorkItem(11L).first())
+        assertNull(repository.observeWorkItem(12L).first())
+        
+        // Verify parent still exists but has no children
+        val restoredParent = repository.observeWorkItem(10L).first() as ProjectTask
+        assertTrue(restoredParent.subTasks.isEmpty())
     }
 
     @Test
-    fun testProgressPropagation() = runTest {
+    fun testProgressUpdatesPropagateToParent() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
         val project = ProjectTask(10L, "Project", "Desc")
         val reading = ReadingTask(11L, "Reading", "Desc", readPages = 0, totalPages = 100)
@@ -91,13 +101,43 @@ class InMemoryTaskRepositoryTest {
         repository.addRootWorkItem(1L, project)
         repository.addSubTask(10L, reading)
         
+        // Initially 0%
         assertEquals(0.0, (repository.observeWorkItem(10L).first() as ProjectTask).getProgress(), 0.01)
         
-        // Update reading progress
-        reading.readPages = 50
+        // Update child
+        reading.readPages = 75
         repository.updateWorkItem(reading)
         
+        // Parent should be 75%
         val updatedProject = repository.observeWorkItem(10L).first() as ProjectTask
-        assertEquals(0.5, updatedProject.getProgress(), 0.01)
+        assertEquals(0.75, updatedProject.getProgress(), 0.01)
+    }
+
+    @Test
+    fun testUpdateWorkItemEmitsAfterInPlaceMutation() = runTest {
+        repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
+        val reading = ReadingTask(0L, "Reading", "Desc", readPages = 0, totalPages = 100)
+        val created = repository.addRootWorkItem(1L, reading)
+
+        val emissions = mutableListOf<Double>()
+        val job = launch {
+            repository.observeWorkItem(created.id)
+                .filterNotNull()
+                .take(2)
+                .collect { item ->
+                    emissions.add(item.getProgress())
+                }
+        }
+        
+        yield() // Let collection start
+
+        (created as ReadingTask).readPages = 50
+        repository.updateWorkItem(created)
+
+        job.join()
+
+        assertEquals(2, emissions.size)
+        assertEquals(0.0, emissions[0], 0.01)
+        assertEquals(0.5, emissions[1], 0.01)
     }
 }
