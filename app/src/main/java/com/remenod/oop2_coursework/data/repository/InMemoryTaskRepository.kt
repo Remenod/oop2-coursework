@@ -8,17 +8,24 @@ import kotlinx.coroutines.flow.map
 import java.util.concurrent.atomic.AtomicLong
 
 class InMemoryTaskRepository : TaskRepository {
-    private val _disciplines = MutableStateFlow<List<Discipline>>(emptyList())
-    private val idGenerator = AtomicLong(2000L) // Start above demo data IDs
+    
+    private data class RepositoryState(
+        val revision: Long = 0L,
+        val disciplines: List<Discipline> = emptyList()
+    )
 
-    override fun observeDisciplines(): Flow<List<Discipline>> = _disciplines
+    private val _state = MutableStateFlow(RepositoryState())
+    private val idGenerator = AtomicLong(2000L)
+
+    override fun observeDisciplines(): Flow<List<Discipline>> = 
+        _state.map { it.disciplines }
 
     override fun observeDiscipline(id: Long): Flow<Discipline?> = 
-        _disciplines.map { list -> list.find { it.id == id } }
+        _state.map { state -> state.disciplines.find { it.id == id } }
 
     override fun observeWorkItem(id: Long): Flow<WorkItem?> = 
-        _disciplines.map { list -> 
-            list.flatMap { it.workItems }.findRecursive(id) 
+        _state.map { state -> 
+            state.disciplines.flatMap { it.workItems }.findRecursive(id) 
         }
 
     private fun List<WorkItem>.findRecursive(id: Long): WorkItem? {
@@ -32,56 +39,66 @@ class InMemoryTaskRepository : TaskRepository {
         return null
     }
 
+    private fun notifyChanged() {
+        _state.value = _state.value.copy(revision = _state.value.revision + 1)
+    }
+
+    private fun setDisciplines(value: List<Discipline>) {
+        _state.value = RepositoryState(
+            revision = _state.value.revision + 1,
+            disciplines = value
+        )
+    }
+
     override suspend fun addDiscipline(discipline: Discipline): Discipline {
         if (discipline.id == 0L) {
             setId(discipline, idGenerator.incrementAndGet())
         }
-        _disciplines.value = _disciplines.value + discipline
+        setDisciplines(_state.value.disciplines + discipline)
         return discipline
     }
 
     override suspend fun updateDiscipline(discipline: Discipline) {
-        val current = _disciplines.value.toMutableList()
+        val current = _state.value.disciplines.toMutableList()
         val index = current.indexOfFirst { it.id == discipline.id }
         if (index != -1) {
             current[index] = discipline
-            _disciplines.value = current.toList()
+            setDisciplines(current)
         }
     }
 
     override suspend fun deleteDiscipline(id: Long) {
-        _disciplines.value = _disciplines.value.filterNot { it.id == id }
+        setDisciplines(_state.value.disciplines.filterNot { it.id == id })
     }
 
     override suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem): WorkItem {
-        val current = _disciplines.value.toMutableList()
+        val current = _state.value.disciplines.toMutableList()
         val discipline = current.find { it.id == disciplineId } ?: return item
         
         if (item.id == 0L) setId(item, idGenerator.incrementAndGet())
         discipline.addWorkItem(item)
-        _disciplines.value = current.toList()
+        setDisciplines(current)
         return item
     }
 
     override suspend fun addSubTask(parentId: Long, item: WorkItem): WorkItem {
-        val current = _disciplines.value.toMutableList()
+        val current = _state.value.disciplines.toMutableList()
         val parent = current.flatMap { it.workItems }.findRecursive(parentId)
         
         require(parent is CompositeWorkItem) { "Subtasks can only be added to CompositeWorkItem types" }
         
         if (item.id == 0L) setId(item, idGenerator.incrementAndGet())
         parent.addSubTask(item)
-        _disciplines.value = current.toList()
+        setDisciplines(current)
         return item
     }
 
     override suspend fun updateWorkItem(item: WorkItem) {
-        // Domain objects are modified, but we need to notify listeners
-        _disciplines.value = _disciplines.value.toList()
+        notifyChanged()
     }
 
     override suspend fun deleteWorkItem(id: Long) {
-        val current = _disciplines.value.toMutableList()
+        val current = _state.value.disciplines.toMutableList()
         var found = false
         
         current.forEach { discipline ->
@@ -97,7 +114,7 @@ class InMemoryTaskRepository : TaskRepository {
         }
         
         if (found) {
-            _disciplines.value = current.toList()
+            setDisciplines(current)
         }
     }
 
@@ -118,10 +135,10 @@ class InMemoryTaskRepository : TaskRepository {
     }
 
     override suspend fun changeWorkItemStatus(id: Long, status: WorkStatus) {
-        val item = _disciplines.value.flatMap { it.workItems }.findRecursive(id)
+        val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(id)
         item?.let {
             setStatus(it, status)
-            _disciplines.value = _disciplines.value.toList()
+            notifyChanged()
         }
     }
 
