@@ -38,6 +38,8 @@ class WorkDetailViewModel(
     }
 
     fun updateReadingProgress(readPages: Int, totalPages: Int) {
+        if (totalPages <= 0 || readPages < 0 || readPages > totalPages) return
+
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ReadingTask) {
