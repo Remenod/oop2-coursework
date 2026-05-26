@@ -225,6 +225,40 @@ class WorkDetailViewModel(
         }
     }
 
+    fun addAttachment(result: AttachmentEditResult) {
+        if (result.title.isBlank() || result.urlOrPath.isBlank()) {
+            _actionError.value = "Title and URL/Path cannot be blank"
+            return
+        }
+        viewModelScope.launch {
+            val attachment = when (result.subtype) {
+                AttachmentSubtype.GITHUB -> GitHubRepositoryLink(0, result.title, result.urlOrPath)
+                AttachmentSubtype.GOOGLE_CLASSROOM -> GoogleClassroomLink(0, result.title, result.urlOrPath)
+                AttachmentSubtype.LOCAL_FILE -> LocalFileResource(0, result.title, result.urlOrPath)
+                AttachmentSubtype.CLOUD_FILE -> CloudFileResource(0, result.title, result.urlOrPath, "Cloud")
+                else -> GenericWebLink(0, result.title, result.urlOrPath)
+            }
+            repository.addAttachment(workItemId, attachment)
+            addAutoLog("Added attachment: ${result.title}")
+            _actionError.value = null
+        }
+    }
+
+    fun removeAttachment(attachmentId: Long) {
+        viewModelScope.launch {
+            repository.removeAttachment(workItemId, attachmentId)
+            addAutoLog("Removed attachment")
+        }
+    }
+
+    fun openAttachment(attachmentId: Long) {
+        viewModelScope.launch {
+            repository.observeWorkItem(workItemId).first()?.let { item ->
+                item.attachments.find { it.id == attachmentId }?.open()
+            }
+        }
+    }
+
     fun deleteThisTask() {
         viewModelScope.launch {
             repository.deleteWorkItem(workItemId)
@@ -287,7 +321,37 @@ class WorkDetailViewModel(
             } else emptyList(),
             subTasks = if (this is CompositeWorkItem) {
                 subTasks.map { SubTaskUiModel(it.id, it.title, it.getProgress(), it.status == WorkStatus.DONE) }
-            } else emptyList()
+            } else emptyList(),
+
+            attachments = attachments.map { it.toUiModel() },
+        )
+    }
+
+    private fun Attachment.toUiModel(): AttachmentUiModel {
+        return AttachmentUiModel(
+            id = id,
+            title = title,
+            typeLabel = when(this) {
+                is LinkAttachment -> "Link"
+                is ResourceAttachment -> "Resource"
+                else -> "Attachment"
+            },
+            subtypeLabel = when(this) {
+                is GitHubRepositoryLink -> "GitHub"
+                is GoogleClassroomLink -> "Classroom"
+                is LocalFileResource -> "Local File"
+                is CloudFileResource -> "Cloud File"
+                is GenericWebLink -> "Web"
+                else -> "Unknown"
+            },
+            target = when(this) {
+                is LinkAttachment -> url
+                is ResourceAttachment -> pathOrUrl
+                else -> ""
+            },
+            createdAtText = DateTimeUiFormatter.formatDateTime(createdAt)
+        )
+    }
         )
     }
 }

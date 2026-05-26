@@ -21,4 +21,9 @@ interface TaskRepository {
     suspend fun deleteWorkItem(id: Long)
 
     suspend fun changeWorkItemStatus(id: Long, status: WorkStatus)
+
+    // Attachments
+    suspend fun addAttachment(workItemId: Long, attachment: Attachment): Attachment
+    suspend fun removeAttachment(workItemId: Long, attachmentId: Long)
+
 }

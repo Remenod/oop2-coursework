@@ -29,6 +29,7 @@ fun WorkDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showAddSubTaskDialog by remember { mutableStateOf(false) }
+    var showAddAttachmentDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {

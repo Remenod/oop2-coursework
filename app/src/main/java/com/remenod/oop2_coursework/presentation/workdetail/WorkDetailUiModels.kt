@@ -52,7 +52,9 @@ data class WorkItemDetailUiModel(
     val seminarStages: SeminarStagesUiModel? = null,
     
     val checklist: List<ChecklistUiModel> = emptyList(),
-    val subTasks: List<SubTaskUiModel> = emptyList()
+    val subTasks: List<SubTaskUiModel> = emptyList(),
+
+    val attachments: List<AttachmentUiModel> = emptyList(),
 )
 
 data class ChecklistUiModel(
@@ -80,4 +82,13 @@ data class SeminarStagesUiModel(
     val speechPrepared: Boolean,
     val slidesPrepared: Boolean,
     val rehearsalDone: Boolean
+)
+
+data class AttachmentUiModel(
+    val id: Long,
+    val title: String,
+    val typeLabel: String,
+    val subtypeLabel: String,
+    val target: String,
+    val createdAtText: String
 )
