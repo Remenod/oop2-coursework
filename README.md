@@ -34,6 +34,11 @@ The current implementation provides a feature-complete in-memory workflow:
 - GitHub-aware attachment parsing;
 - attachment actions and mock sync/submit flows;
 - work logs / activity timeline;
+- dashboard with recursive analytics;
+- global task search across all disciplines and nested subtasks;
+- discipline-level task search, filters, and sorting;
+- filters by status, priority, task type, overdue state, attachment purpose, GitHub attachments, and tasks with logs;
+- sorting by deadline, priority, progress, and updated timestamp;
 - persistence-ready record and mapper layer.
 
 The application state is still stored in memory. Data is expected to reset after application restart until the Room persistence phase is implemented.
@@ -279,43 +284,34 @@ Completed.
 
 Added manual logs, work session logs, automatic task history entries, and timeline-oriented UI data.
 
-## Roadmap
-
 ### Phase 5 — Dashboard, Search, Filters, and Analytics
 
-In progress.
+Completed.
 
-The current branch uses existing task data to provide a higher-level overview while keeping runtime storage in memory.
+Added a dashboard and search/filter layer on top of the in-memory repository:
 
-Planned features:
-
-- dashboard screen — implemented;
-- total tasks count — implemented;
-- active, completed, cancelled, and overdue tasks — implemented;
-- tasks due today — implemented;
-- tasks due this week — implemented;
-- total estimated time — implemented;
-- total logged time — implemented;
-- progress by discipline — implemented;
-- overdue count by discipline — implemented;
-- global recursive search by title and description — implemented;
-- filter by status — implemented;
-- filter by priority — implemented;
-- filter by task type — implemented;
-- filter by overdue state — implemented;
-- filter by attachment purpose — implemented;
-- filter by tasks with GitHub repository — implemented;
-- filter by tasks with logs — implemented;
-- sort by deadline — implemented;
-- sort by priority — implemented;
-- sort by updated date — implemented;
-- sort by progress — implemented.
+- dashboard route as the application start screen;
+- recursive analytics through `AnalyticsService`;
+- total, active, done, cancelled, overdue, due today, and due this week counters;
+- average progress and workload time summaries;
+- total estimated time and total logged time;
+- progress and overdue counts by discipline;
+- at-risk task detection;
+- high-priority active task list;
+- global recursive task search across all disciplines;
+- discipline-level work list filtering;
+- filters by status, priority, task type, overdue state, attachment purpose, GitHub repository, and logs;
+- sorting by deadline, priority, progress, and updated date;
+- empty states for dashboard/search/filter results;
+- focused tests for analytics and recursive global search.
 
 Recent activity on the dashboard is intentionally out of scope for this phase. Work logs remain available in task detail, and total logged time is included in analytics.
 
+## Roadmap
+
 ### Phase 6 — Room Persistence
 
-Planned after analytics and filtering are stable.
+Planned next.
 
 The goal is to replace in-memory runtime storage with local SQLite persistence using Room while keeping the existing domain model intact.
 
@@ -379,13 +375,13 @@ Planned work:
 - GitHub sync is mocked.
 - Google Classroom sync and submit actions are mocked.
 - Local file opening is not backed by Android file picker permissions yet.
-- Analytics service is still mostly a future extension point.
 - No background reminders or notifications are implemented yet.
+- Recent activity is not shown on the dashboard by design; logs are available in task detail.
 
 ## Technical Debt
 
 - Some UI screens are feature-rich and should be split further into smaller composables if they continue to grow.
-- Analytics functionality should be promoted from placeholder service methods to a real dashboard layer.
+- Search/filter controls are implemented separately for the work list and global search; a shared presentation helper could reduce duplication later.
 - Room persistence should be implemented only after the domain behavior and analytics requirements are stable.
 - ViewModel tests should be expanded after the current repository/domain tests are stable.
 
@@ -400,5 +396,13 @@ The project includes unit tests for:
 - persistence mapper round trips;
 - attachment enhancement logic;
 - attachment and log repository behavior.
+- recursive analytics calculations;
+- recursive global search with attachment-purpose filtering.
 
-In this review environment, Gradle tests could not be executed because the Gradle wrapper attempted to download Gradle from `services.gradle.org`, and the environment had no internet access. The source code and test structure were inspected directly.
+Current verification command:
+
+```bash
+./gradlew test
+```
+
+The command passes in the current development environment.
