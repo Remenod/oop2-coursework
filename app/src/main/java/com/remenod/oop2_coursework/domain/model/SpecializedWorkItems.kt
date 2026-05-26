@@ -1,31 +1,49 @@
 package com.remenod.oop2_coursework.domain.model
 
+import java.time.LocalDateTime
+
 class ProgrammingTask(
     id: Long,
     title: String,
     description: String,
-    var commitsCount: Int = 0,   // Probably I would not figure out how to make dis automatic
-    var issuesResolved: Int = 0, // Probably I would not figure out how to make dis automatic
+    var commitsCount: Int = 0,
+    var requiredCommits: Int = 5,
+    var issuesResolved: Int = 0,
+    var requiredIssues: Int = 2,
     var testsPassed: Double = 0.0, // 0.0 to 1.0
     estimatedMinutes: Int = 0
 ) : AtomicWorkItem(id, title, description, estimatedMinutes = estimatedMinutes) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        val checklistProgress = getChecklistProgress()
-        val commitProgress = (commitsCount / 5.0).coerceAtMost(1.0)
-        val issueProgress = (issuesResolved / 2.0).coerceAtMost(1.0)
-        val testProgress = testsPassed
+        val components = mutableListOf<Pair<Double, Double>>()
 
-        val totalProgress = checklistProgress * 0.4 + commitProgress * 0.25 + issueProgress * 0.25 + testProgress * 0.1
-        
-        val explanation = buildString {
-            append("${(checklistProgress * 100).toInt()}% checklist, ")
-            append("$commitsCount commits, ")
-            append("$issuesResolved issues, ")
-            append("${(testProgress * 100).toInt()}% tests")
+        if (checklist.isNotEmpty()) {
+            components += getChecklistProgress() to 0.25
         }
 
-        return ProgressSnapshot(totalProgress, explanation)
+        if (requiredCommits > 0) {
+            components += (commitsCount.toDouble() / requiredCommits).coerceIn(0.0, 1.0) to 0.25
+        }
+
+        if (requiredIssues > 0) {
+            components += (issuesResolved.toDouble() / requiredIssues).coerceIn(0.0, 1.0) to 0.25
+        }
+
+        components += testsPassed.coerceIn(0.0, 1.0) to 0.25
+
+        val totalWeight = components.sumOf { it.second }
+        val percent = if (totalWeight == 0.0) 0.0 else components.sumOf { it.first * it.second } / totalWeight
+        
+        val explanation = buildString {
+            append("$commitsCount/$requiredCommits commits, ")
+            append("$issuesResolved/$requiredIssues issues, ")
+            append("${(testsPassed * 100).toInt()}% tests")
+            if (checklist.isNotEmpty()) {
+                append(", ${(getChecklistProgress() * 100).toInt()}% checklist")
+            }
+        }
+
+        return ProgressSnapshot(percent, explanation)
     }
 
     override fun validateCompletion(): Boolean {
@@ -83,7 +101,7 @@ class SeminarTask(
     }
 
     override fun validateCompletion(): Boolean {
-        return rehearsalDone // Must have done rehearsal to complete (idk, probably not actually)
+        return rehearsalDone
     }
 }
 
@@ -113,15 +131,15 @@ class GenericTask(
 ) : AtomicWorkItem(id, title, description) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        return if (status == WorkStatus.DONE) {
-            ProgressSnapshot(1.0, "Completed")
-        } else {
-            ProgressSnapshot(getChecklistProgress(), getChecklistExplanation())
+        return when {
+            status == WorkStatus.DONE -> ProgressSnapshot(1.0, "Completed")
+            checklist.isEmpty() -> ProgressSnapshot(0.0, "No checklist items")
+            else -> ProgressSnapshot(getChecklistProgress(), getChecklistExplanation())
         }
     }
 
     override fun validateCompletion(): Boolean {
-        return getChecklistProgress() >= 1.0
+        return checklist.isEmpty() || getChecklistProgress() >= 1.0
     }
 }
 
