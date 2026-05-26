@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.remenod.oop2_coursework.presentation.worklist.PriorityBadge
 
@@ -30,7 +31,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Academic Dashboard") },
+                title = { Text("Dashboard") },
                 actions = {
                     IconButton(onClick = onViewDisciplines) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Disciplines")
@@ -49,105 +50,65 @@ fun DashboardScreen(
                     .fillMaxSize()
                     .padding(padding),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Summary Statistics
                 item {
-                    Text("Overview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatCard(
-                            label = "Overdue",
-                            value = uiState.overdueTasks.toString(),
-                            icon = Icons.Default.Warning,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatCard(
-                            label = "Due Today",
-                            value = uiState.dueTodayTasks.toString(),
-                            icon = Icons.Default.Today,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    DashboardSummaryHeader(uiState)
                 }
 
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatCard(
-                            label = "Active",
-                            value = uiState.activeTasks.toString(),
-                            icon = Icons.Default.Pending,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatCard(
-                            label = "Done",
-                            value = uiState.doneTasks.toString(),
-                            icon = Icons.Default.CheckCircle,
-                            color = Color(0xFF1E8E3E),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    DashboardStatGrid(uiState)
                 }
 
-                // Progress Summary
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Overall Progress", style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(8.dp))
-                            LinearProgressIndicator(
-                                progress = { uiState.averageProgress.toFloat() },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("${(uiState.averageProgress * 100).toInt()}% average", style = MaterialTheme.typography.bodySmall)
-                                Text("${uiState.totalLoggedTimeText} spent", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
+                    ProgressOverviewCard(uiState)
                 }
 
-                // At Risk Tasks
                 if (uiState.atRiskTasks.isNotEmpty()) {
                     item {
-                        Text("At Risk / Urgent", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+                        DashboardSectionTitle(
+                            title = "At risk",
+                            icon = Icons.Default.Warning,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                     items(uiState.atRiskTasks) { task ->
                         DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
                     }
                 }
 
-                // High Priority Tasks
                 if (uiState.highPriorityTasks.isNotEmpty()) {
                     item {
-                        Text("High Priority", style = MaterialTheme.typography.titleMedium)
+                        DashboardSectionTitle(
+                            title = "High priority",
+                            icon = Icons.Default.PriorityHigh,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     items(uiState.highPriorityTasks) { task ->
                         DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
                     }
                 }
 
-                // Disciplines Summary
                 item {
-                    Text("Disciplines", style = MaterialTheme.typography.titleMedium)
+                    DashboardSectionTitle(
+                        title = "Disciplines",
+                        icon = Icons.Default.School,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
                 items(uiState.disciplineSummaries) { discipline ->
                     DisciplineSummaryCard(discipline, onClick = { onDisciplineClick(discipline.id) })
                 }
-                
+
                 item {
-                    DashboardActionButton(
+                    OutlinedButton(
                         onClick = onViewDisciplines,
-                        modifier = Modifier.fillMaxWidth(),
-                        variant = ButtonVariant.OUTLINED
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Manage All Disciplines")
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Manage disciplines")
                     }
                 }
             }
@@ -156,22 +117,196 @@ fun DashboardScreen(
 }
 
 @Composable
-fun StatCard(
+fun DashboardSummaryHeader(state: DashboardUiState) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Study workload",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "${state.totalTasks} tasks across ${state.disciplineSummaries.size} disciplines",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun DashboardStatGrid(state: DashboardUiState) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DashboardStatCard(
+                label = "Active",
+                value = state.activeTasks.toString(),
+                icon = Icons.Default.Pending,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            DashboardStatCard(
+                label = "Done",
+                value = state.doneTasks.toString(),
+                icon = Icons.Default.CheckCircle,
+                color = Color(0xFF1E8E3E),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DashboardStatCard(
+                label = "Overdue",
+                value = state.overdueTasks.toString(),
+                icon = Icons.Default.Warning,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f)
+            )
+            DashboardStatCard(
+                label = "Today",
+                value = state.dueTodayTasks.toString(),
+                icon = Icons.Default.Today,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DashboardStatCard(
+                label = "This week",
+                value = state.dueThisWeekTasks.toString(),
+                icon = Icons.Default.Event,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f)
+            )
+            DashboardStatCard(
+                label = "Cancelled",
+                value = state.cancelledTasks.toString(),
+                icon = Icons.Default.Cancel,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun DashboardStatCard(
     label: String,
     value: String,
     icon: ImageVector,
     color: Color,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier) {
+    ElevatedCard(modifier = modifier.heightIn(min = 88.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = color.copy(alpha = 0.12f),
+                contentColor = color
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProgressOverviewCard(state: DashboardUiState) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = color)
-            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.labelSmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Overall progress", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "${(state.averageProgress * 100).toInt()}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            LinearProgressIndicator(
+                progress = { state.averageProgress.toFloat() },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WorkloadMetric(
+                    label = "Estimated",
+                    value = state.totalEstimatedTimeText,
+                    modifier = Modifier.weight(1f)
+                )
+                WorkloadMetric(
+                    label = "Logged",
+                    value = state.totalLoggedTimeText,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun WorkloadMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun DashboardSectionTitle(
+    title: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = color)
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -185,18 +320,45 @@ fun DashboardTaskItem(
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            PriorityBadge(task.priority)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(task.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text(task.disciplineName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                Text(task.timeLeftText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PriorityBadge(task.priority)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = task.disciplineName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = "${(task.progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-            Text("${(task.progress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(task.timeLeftText, style = MaterialTheme.typography.labelSmall)
+                Text(task.status.name, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -211,16 +373,40 @@ fun DisciplineSummaryCard(
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(discipline.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text("${discipline.activeTaskCount} active", style = MaterialTheme.typography.labelSmall)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = discipline.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${discipline.activeTaskCount}/${discipline.totalTaskCount} active",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (discipline.overdueTaskCount > 0) {
+                    AssistChip(
+                        onClick = {},
+                        enabled = false,
+                        label = { Text("${discipline.overdueTaskCount} overdue") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                }
             }
-            Spacer(Modifier.height(4.dp))
             LinearProgressIndicator(
                 progress = { discipline.progress.toFloat() },
                 modifier = Modifier.fillMaxWidth(),
@@ -228,22 +414,4 @@ fun DisciplineSummaryCard(
             )
         }
     }
-}
-
-@Composable
-fun DashboardActionButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    variant: ButtonVariant = ButtonVariant.FILLED,
-    content: @Composable RowScope.() -> Unit
-) {
-    when (variant) {
-        ButtonVariant.FILLED -> Button(onClick = onClick, modifier = modifier, content = content)
-        ButtonVariant.OUTLINED -> OutlinedButton(onClick = onClick, modifier = modifier, content = content)
-        ButtonVariant.TEXT -> TextButton(onClick = onClick, modifier = modifier, content = content)
-    }
-}
-
-enum class ButtonVariant {
-    FILLED, OUTLINED, TEXT
 }

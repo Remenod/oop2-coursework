@@ -55,14 +55,16 @@ class DashboardViewModel(
         id = id,
         name = name,
         progress = getProgress(),
-        activeTaskCount = workItems.count { it.status != WorkStatus.DONE && it.status != WorkStatus.CANCELLED },
+        totalTaskCount = getAllWorkItemsRecursive().size,
+        activeTaskCount = getAllWorkItemsRecursive().count { it.status != WorkStatus.DONE && it.status != WorkStatus.CANCELLED },
+        overdueTaskCount = getOverdueItems().size,
         color = color
     )
 
     private fun WorkItem.toDashboardTaskUiModel(disciplines: List<Discipline>) = DashboardTaskUiModel(
         id = id,
         title = title,
-        disciplineName = disciplines.find { d -> d.workItems.any { it.id == this.id } }?.name ?: "Unknown",
+        disciplineName = disciplines.find { d -> d.getAllWorkItemsRecursive().any { it.id == this.id } }?.name ?: "Unknown",
         deadlineText = DateTimeUiFormatter.formatDateTime(deadline),
         timeLeftText = DateTimeUiFormatter.timeLeft(deadline),
         priority = priority,

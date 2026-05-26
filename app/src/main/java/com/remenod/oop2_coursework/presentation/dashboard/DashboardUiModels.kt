@@ -25,7 +25,9 @@ data class DisciplineDashboardUiModel(
     val id: Long,
     val name: String,
     val progress: Double,
+    val totalTaskCount: Int,
     val activeTaskCount: Int,
+    val overdueTaskCount: Int,
     val color: Int
 )
 
