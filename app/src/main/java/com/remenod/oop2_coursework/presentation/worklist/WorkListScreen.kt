@@ -98,7 +98,11 @@ fun WorkListScreen(
                     }
                 }
 
-                items(uiState.items, key = { it.id }) { item ->
+                items(
+                    items = uiState.items,
+                    key = { it.id },
+                    contentType = { "workItem" }
+                ) { item ->
                     WorkItemCard(
                         item = item, 
                         onClick = { onWorkItemClick(item.id) },
@@ -336,9 +340,7 @@ fun WorkItemCard(
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -376,7 +378,8 @@ fun WorkItemCard(
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable(onClick = onClick)
             )
             
             Spacer(modifier = Modifier.height(8.dp))

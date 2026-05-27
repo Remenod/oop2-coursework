@@ -96,7 +96,11 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
-                        items(uiState.atRiskTasks, key = { it.id }) { task ->
+                        items(
+                            items = uiState.atRiskTasks,
+                            key = { it.id },
+                            contentType = { "dashboardTask" }
+                        ) { task ->
                             DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
                         }
                     }
@@ -109,7 +113,11 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        items(uiState.highPriorityTasks, key = { it.id }) { task ->
+                        items(
+                            items = uiState.highPriorityTasks,
+                            key = { it.id },
+                            contentType = { "dashboardTask" }
+                        ) { task ->
                             DashboardTaskItem(task, onClick = { onTaskClick(task.id) })
                         }
                     }
@@ -122,7 +130,11 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
-                items(uiState.disciplineSummaries, key = { it.id }) { discipline ->
+                items(
+                    items = uiState.disciplineSummaries,
+                    key = { it.id },
+                    contentType = { "disciplineSummary" }
+                ) { discipline ->
                     DisciplineSummaryCard(discipline, onClick = { onDisciplineClick(discipline.id) })
                 }
 
@@ -374,11 +386,7 @@ fun DashboardTaskItem(
     task: DashboardTaskUiModel,
     onClick: () -> Unit
 ) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -388,7 +396,11 @@ fun DashboardTaskItem(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 PriorityBadge(task.priority)
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = onClick)
+                ) {
                     Text(
                         text = task.title,
                         style = MaterialTheme.typography.bodyMedium,
@@ -427,11 +439,7 @@ fun DisciplineSummaryCard(
     discipline: DisciplineDashboardUiModel,
     onClick: () -> Unit
 ) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -441,7 +449,11 @@ fun DisciplineSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = onClick)
+                ) {
                     Text(
                         text = discipline.name,
                         style = MaterialTheme.typography.bodyMedium,

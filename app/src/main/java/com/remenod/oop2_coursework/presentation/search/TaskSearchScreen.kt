@@ -81,7 +81,11 @@ fun TaskSearchScreen(
                     }
                 }
 
-                items(state.items, key = { it.id }) { item ->
+                items(
+                    items = state.items,
+                    key = { it.id },
+                    contentType = { "taskSearchResult" }
+                ) { item ->
                     TaskSearchResultCard(
                         item = item,
                         onClick = { onTaskClick(item.id) }
@@ -285,11 +289,7 @@ fun TaskSearchResultCard(
     item: TaskSearchItemUiModel,
     onClick: () -> Unit
 ) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -315,7 +315,8 @@ fun TaskSearchResultCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable(onClick = onClick)
             )
             Text(
                 text = item.disciplineName,

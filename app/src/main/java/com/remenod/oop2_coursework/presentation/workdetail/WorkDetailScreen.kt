@@ -168,7 +168,11 @@ fun WorkDetailScreen(
                         item {
                             Text(text = "Topics", style = MaterialTheme.typography.titleMedium)
                         }
-                        items(item.examTopics, key = { it.index }) { topic ->
+                        items(
+                            items = item.examTopics,
+                            key = { it.index },
+                            contentType = { "examTopic" }
+                        ) { topic ->
                             ExamTopicItem(topic, onUpdate = { c -> viewModel.updateExamTopic(topic.index, c) }, onRemove = { viewModel.removeExamTopic(topic.index) })
                         }
                         item {
@@ -187,14 +191,18 @@ fun WorkDetailScreen(
                                 }
                             }
                         }
-                        items(item.subTasks, key = { it.id }) { subTask ->
-                            OutlinedCard(
-                                modifier = Modifier.fillMaxWidth().clickable { 
-                                    onSubTaskClick(subTask.id)
-                                }
-                            ) {
+                        items(
+                            items = item.subTasks,
+                            key = { it.id },
+                            contentType = { "subTask" }
+                        ) { subTask ->
+                            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { onSubTaskClick(subTask.id) }
+                                    ) {
                                         Text(text = subTask.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                                         Text(text = "${(subTask.progress * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
                                     }

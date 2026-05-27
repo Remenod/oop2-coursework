@@ -50,7 +50,11 @@ fun DisciplineListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(uiState.disciplines, key = { it.id }) { discipline ->
+                items(
+                    items = uiState.disciplines,
+                    key = { it.id },
+                    contentType = { "discipline" }
+                ) { discipline ->
                     DisciplineCard(
                         discipline = discipline, 
                         onClick = { onDisciplineClick(discipline.id) },
@@ -93,9 +97,7 @@ fun DisciplineCard(
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -119,7 +121,9 @@ fun DisciplineCard(
                         text = discipline.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onClick)
                     )
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
