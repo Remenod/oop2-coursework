@@ -8,21 +8,20 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
-class FileBackedTaskRepositoryTest {
+class LocalTaskRepositoryTest {
 
     @Test
     fun testMutationIsSavedToLocalStorage() = runTest {
         val file = tempStorageFile()
         val storage = LocalTaskStorage(file)
-        val repository = FileBackedTaskRepository(
-            delegate = InMemoryTaskRepository(
-                initialDisciplines = listOf(Discipline(1L, "OOP", "Teacher", 4, 0))
-            ),
-            storage = storage
+        val repository = LocalTaskRepository(
+            storage = storage,
+            initialDisciplines = listOf(Discipline(1L, "OOP", "Teacher", 4, 0))
         )
 
         val created = repository.addRootWorkItem(
@@ -42,8 +41,32 @@ class FileBackedTaskRepositoryTest {
         assertEquals("Saved task", restartedRepository.observeWorkItem(created.id).first()?.title)
     }
 
+    @Test
+    fun testCreateLoadsSavedData() = runTest {
+        val file = tempStorageFile()
+        val storage = LocalTaskStorage(file)
+        val savedDiscipline = Discipline(1L, "Saved", "Teacher", 4, 0)
+        storage.save(listOf(savedDiscipline))
+
+        val repository = LocalTaskRepository.create(storage = storage)
+
+        val disciplines = repository.observeDisciplines().first()
+        assertEquals(1, disciplines.size)
+        assertEquals("Saved", disciplines.first().name)
+    }
+
+    @Test
+    fun testCreateStartsEmptyWithoutSnapshot() = runTest {
+        val file = tempStorageFile()
+        val storage = LocalTaskStorage(file)
+
+        val repository = LocalTaskRepository.create(storage = storage)
+
+        assertTrue(repository.observeDisciplines().first().isEmpty())
+    }
+
     private fun tempStorageFile(): File {
-        val dir = createTempDirectory(prefix = "oop2-file-backed-repo").toFile()
+        val dir = createTempDirectory(prefix = "oop2-local-repo").toFile()
         return File(dir, "tasks.snapshot")
     }
 }
