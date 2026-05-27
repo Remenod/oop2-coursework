@@ -1,6 +1,7 @@
 package com.remenod.oop2_coursework.data.persistence.model
 
 import com.remenod.oop2_coursework.domain.model.*
+import java.io.Serializable
 import java.time.LocalDateTime
 
 /**
@@ -12,7 +13,7 @@ data class DisciplineRecord(
     val teacherName: String,
     val semester: Int,
     val color: Int
-)
+) : Serializable
 
 /**
  * Mirror of a future 'work_items' table. 
@@ -60,7 +61,7 @@ data class WorkItemRecord(
 
     // Exam specialized fields
     val targetGrade: Int? = null
-)
+) : Serializable
 
 data class ChecklistItemRecord(
     val id: Long,
@@ -68,7 +69,7 @@ data class ChecklistItemRecord(
     val text: String,
     val isCompleted: Boolean,
     val sortOrder: Int
-)
+) : Serializable
 
 data class ExamTopicRecord(
     val id: Long,
@@ -76,7 +77,7 @@ data class ExamTopicRecord(
     val name: String,
     val confidence: Int,
     val sortOrder: Int
-)
+) : Serializable
 
 data class AttachmentRecord(
     val id: Long,
@@ -93,7 +94,7 @@ data class AttachmentRecord(
     val repositoryName: String? = null,
     val lastOpenedAt: LocalDateTime? = null,
     val createdAt: LocalDateTime
-)
+) : Serializable
 
 data class WorkLogEntryRecord(
     val id: Long,
@@ -101,7 +102,7 @@ data class WorkLogEntryRecord(
     val message: String,
     val createdAt: LocalDateTime,
     val minutesSpent: Int
-)
+) : Serializable
 
 /**
  * A flat collection of all records for a discipline or task tree.
@@ -113,4 +114,13 @@ data class PersistenceBundle(
     val examTopics: List<ExamTopicRecord> = emptyList(),
     val attachments: List<AttachmentRecord> = emptyList(),
     val logs: List<WorkLogEntryRecord> = emptyList()
-)
+) : Serializable
+
+/**
+ * A full app snapshot for simple local file persistence.
+ */
+data class PersistenceSnapshot(
+    val version: Int = 1,
+    val disciplines: List<DisciplineRecord> = emptyList(),
+    val bundle: PersistenceBundle = PersistenceBundle()
+) : Serializable
