@@ -8,7 +8,7 @@ import com.remenod.oop2_coursework.presentation.navigation.AppNavHost
 import com.remenod.oop2_coursework.ui.theme.Oop2courseworkTheme
 
 class MainActivity : ComponentActivity() {
-    private val appContainer = AppContainer()
+    private val appContainer by lazy { AppContainer(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

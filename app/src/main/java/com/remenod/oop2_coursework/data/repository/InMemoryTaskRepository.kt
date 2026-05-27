@@ -5,17 +5,22 @@ import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicLong
 
-class InMemoryTaskRepository : TaskRepository {
+open class InMemoryTaskRepository(
+    initialDisciplines: List<Discipline> = emptyList()
+) : TaskRepository {
     
     private data class RepositoryState(
         val revision: Long = 0L,
         val disciplines: List<Discipline> = emptyList()
     )
 
-    private val _state = MutableStateFlow(RepositoryState())
-    private val idGenerator = AtomicLong(2000L)
+    private val _state = MutableStateFlow(RepositoryState(disciplines = initialDisciplines))
+    private val idGenerator = AtomicLong(maxOf(2000L, initialDisciplines.maxExistingId()))
+    private val mutationMutex = Mutex()
 
     override fun observeDisciplines(): Flow<List<Discipline>> = 
         _state.map { it.disciplines }
@@ -28,6 +33,14 @@ class InMemoryTaskRepository : TaskRepository {
             state.disciplines.flatMap { it.workItems }.findRecursive(id) 
         }
 
+    protected open suspend fun onRepositoryChanged(disciplines: List<Discipline>) = Unit
+
+    private suspend fun <T> mutate(block: suspend () -> T): T {
+        return mutationMutex.withLock {
+            block()
+        }
+    }
+
     private fun List<WorkItem>.findRecursive(id: Long): WorkItem? {
         this.forEach { 
             if (it.id == id) return it
@@ -39,27 +52,29 @@ class InMemoryTaskRepository : TaskRepository {
         return null
     }
 
-    private fun notifyChanged() {
+    private suspend fun notifyChanged() {
         _state.value = _state.value.copy(revision = _state.value.revision + 1)
+        onRepositoryChanged(_state.value.disciplines)
     }
 
-    private fun setDisciplines(value: List<Discipline>) {
+    private suspend fun setDisciplines(value: List<Discipline>) {
         _state.value = RepositoryState(
             revision = _state.value.revision + 1,
             disciplines = value
         )
+        onRepositoryChanged(value)
     }
 
-    override suspend fun addDiscipline(discipline: Discipline): Discipline {
+    override suspend fun addDiscipline(discipline: Discipline): Discipline = mutate {
         if (discipline.id == 0L) {
             setId(discipline, idGenerator.incrementAndGet())
         }
         setDisciplines(_state.value.disciplines + discipline)
-        return discipline
+        discipline
     }
 
-    override suspend fun updateDiscipline(discipline: Discipline) {
-        val existing = _state.value.disciplines.find { it.id == discipline.id } ?: return
+    override suspend fun updateDiscipline(discipline: Discipline): Unit = mutate {
+        val existing = _state.value.disciplines.find { it.id == discipline.id } ?: return@mutate
         existing.updateMetadata(
             name = discipline.name,
             teacherName = discipline.teacherName,
@@ -69,21 +84,21 @@ class InMemoryTaskRepository : TaskRepository {
         notifyChanged()
     }
 
-    override suspend fun deleteDiscipline(id: Long) {
+    override suspend fun deleteDiscipline(id: Long): Unit = mutate {
         setDisciplines(_state.value.disciplines.filterNot { it.id == id })
     }
 
-    override suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem): WorkItem {
+    override suspend fun addRootWorkItem(disciplineId: Long, item: WorkItem): WorkItem = mutate {
         val current = _state.value.disciplines.toMutableList()
-        val discipline = current.find { it.id == disciplineId } ?: return item
+        val discipline = current.find { it.id == disciplineId } ?: return@mutate item
         
         if (item.id == 0L) setId(item, idGenerator.incrementAndGet())
         discipline.addWorkItem(item)
         setDisciplines(current)
-        return item
+        item
     }
 
-    override suspend fun addSubTask(parentId: Long, item: WorkItem): WorkItem {
+    override suspend fun addSubTask(parentId: Long, item: WorkItem): WorkItem = mutate {
         val current = _state.value.disciplines.toMutableList()
         val parent = current.flatMap { it.workItems }.findRecursive(parentId)
         
@@ -92,14 +107,14 @@ class InMemoryTaskRepository : TaskRepository {
         if (item.id == 0L) setId(item, idGenerator.incrementAndGet())
         parent.addSubTask(item)
         setDisciplines(current)
-        return item
+        item
     }
 
-    override suspend fun updateWorkItem(item: WorkItem) {
+    override suspend fun updateWorkItem(item: WorkItem): Unit = mutate {
         notifyChanged()
     }
 
-    override suspend fun deleteWorkItem(id: Long) {
+    override suspend fun deleteWorkItem(id: Long): Unit = mutate {
         val current = _state.value.disciplines.toMutableList()
         var found = false
         
@@ -136,7 +151,7 @@ class InMemoryTaskRepository : TaskRepository {
         return false
     }
 
-    override suspend fun changeWorkItemStatus(id: Long, status: WorkStatus) {
+    override suspend fun changeWorkItemStatus(id: Long, status: WorkStatus): Unit = mutate {
         val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(id)
         item?.let {
             it.setUserStatus(status)
@@ -144,17 +159,17 @@ class InMemoryTaskRepository : TaskRepository {
         }
     }
 
-    override suspend fun addAttachment(workItemId: Long, attachment: Attachment): Attachment {
+    override suspend fun addAttachment(workItemId: Long, attachment: Attachment): Attachment = mutate {
         val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
         requireNotNull(item) { "WorkItem not found" }
         
         if (attachment.id == 0L) setId(attachment, idGenerator.incrementAndGet())
         item.addAttachment(attachment)
         notifyChanged()
-        return attachment
+        attachment
     }
 
-    override suspend fun removeAttachment(workItemId: Long, attachmentId: Long) {
+    override suspend fun removeAttachment(workItemId: Long, attachmentId: Long): Unit = mutate {
         val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
         item?.let {
             val attachment = it.attachments.find { a -> a.id == attachmentId }
@@ -165,7 +180,7 @@ class InMemoryTaskRepository : TaskRepository {
         }
     }
 
-    override suspend fun addWorkLogEntry(workItemId: Long, entry: WorkLogEntry): WorkLogEntry {
+    override suspend fun addWorkLogEntry(workItemId: Long, entry: WorkLogEntry): WorkLogEntry = mutate {
         val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
         requireNotNull(item) { "WorkItem not found" }
         
@@ -175,10 +190,10 @@ class InMemoryTaskRepository : TaskRepository {
         
         item.addLog(finalEntry)
         notifyChanged()
-        return finalEntry
+        finalEntry
     }
 
-    override suspend fun removeWorkLogEntry(workItemId: Long, entryId: Long) {
+    override suspend fun removeWorkLogEntry(workItemId: Long, entryId: Long): Unit = mutate {
         val item = _state.value.disciplines.flatMap { it.workItems }.findRecursive(workItemId)
         item?.let {
             it.removeLog(entryId)
@@ -200,5 +215,13 @@ class InMemoryTaskRepository : TaskRepository {
                 break
             }
         }
+    }
+
+    private fun List<Discipline>.maxExistingId(): Long {
+        val disciplineIds = map { it.id }
+        val workItemIds = flatMap { it.getAllWorkItemsRecursive() }.flatMap { item ->
+            listOf(item.id) + item.attachments.map { it.id } + item.logs.map { it.id }
+        }
+        return (disciplineIds + workItemIds).maxOrNull() ?: 0L
     }
 }

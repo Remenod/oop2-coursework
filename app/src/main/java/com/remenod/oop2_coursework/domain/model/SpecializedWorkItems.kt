@@ -1,5 +1,7 @@
 package com.remenod.oop2_coursework.domain.model
 
+import java.time.LocalDateTime
+
 class ProgrammingTask(
     id: Long,
     title: String,
@@ -11,8 +13,23 @@ class ProgrammingTask(
     var testsPassed: Double = 0.0, // 0.0 to 1.0
     var repositoryUrl: String? = null,
     var branch: String? = null,
-    estimatedMinutes: Int = 0
-) : AtomicWorkItem(id, title, description, estimatedMinutes = estimatedMinutes) {
+    estimatedMinutes: Int = 0,
+    status: WorkStatus = WorkStatus.CREATED,
+    priority: Priority = Priority.NORMAL,
+    deadline: LocalDateTime? = null,
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now()
+) : AtomicWorkItem(
+    id = id,
+    title = title,
+    description = description,
+    status = status,
+    priority = priority,
+    deadline = deadline,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    estimatedMinutes = estimatedMinutes
+) {
     
     override fun calculateProgress(): ProgressSnapshot {
         val components = mutableListOf<Pair<Double, Double>>()
@@ -62,8 +79,24 @@ class ExamTask(
     id: Long,
     title: String,
     description: String,
-    val topics: MutableList<ExamTopic> = mutableListOf()
-) : AtomicWorkItem(id, title, description) {
+    val topics: MutableList<ExamTopic> = mutableListOf(),
+    status: WorkStatus = WorkStatus.CREATED,
+    priority: Priority = Priority.NORMAL,
+    deadline: LocalDateTime? = null,
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now(),
+    estimatedMinutes: Int = 0
+) : AtomicWorkItem(
+    id = id,
+    title = title,
+    description = description,
+    status = status,
+    priority = priority,
+    deadline = deadline,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    estimatedMinutes = estimatedMinutes
+) {
     
     override fun calculateProgress(): ProgressSnapshot {
         if (topics.isEmpty()) return ProgressSnapshot(0.0, "No topics defined")
@@ -85,8 +118,24 @@ class SeminarTask(
     var materialsCollected: Boolean = false,
     var speechPrepared: Boolean = false,
     var slidesPrepared: Boolean = false,
-    var rehearsalDone: Boolean = false
-) : AtomicWorkItem(id, title, description) {
+    var rehearsalDone: Boolean = false,
+    status: WorkStatus = WorkStatus.CREATED,
+    priority: Priority = Priority.NORMAL,
+    deadline: LocalDateTime? = null,
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now(),
+    estimatedMinutes: Int = 0
+) : AtomicWorkItem(
+    id = id,
+    title = title,
+    description = description,
+    status = status,
+    priority = priority,
+    deadline = deadline,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    estimatedMinutes = estimatedMinutes
+) {
     
     override fun calculateProgress(): ProgressSnapshot {
         val stages = listOf(topicSelected, materialsCollected, speechPrepared, slidesPrepared, rehearsalDone)
@@ -115,8 +164,24 @@ class ReadingTask(
     title: String,
     description: String,
     var readPages: Int = 0,
-    var totalPages: Int = 100
-) : AtomicWorkItem(id, title, description) {
+    var totalPages: Int = 100,
+    status: WorkStatus = WorkStatus.CREATED,
+    priority: Priority = Priority.NORMAL,
+    deadline: LocalDateTime? = null,
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now(),
+    estimatedMinutes: Int = 0
+) : AtomicWorkItem(
+    id = id,
+    title = title,
+    description = description,
+    status = status,
+    priority = priority,
+    deadline = deadline,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    estimatedMinutes = estimatedMinutes
+) {
     
     override fun calculateProgress(): ProgressSnapshot {
         val safeTotal = totalPages.coerceAtLeast(1)
@@ -142,8 +207,24 @@ class ReadingTask(
 class GenericTask(
     id: Long,
     title: String,
-    description: String
-) : AtomicWorkItem(id, title, description) {
+    description: String,
+    status: WorkStatus = WorkStatus.CREATED,
+    priority: Priority = Priority.NORMAL,
+    deadline: LocalDateTime? = null,
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now(),
+    estimatedMinutes: Int = 0
+) : AtomicWorkItem(
+    id = id,
+    title = title,
+    description = description,
+    status = status,
+    priority = priority,
+    deadline = deadline,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    estimatedMinutes = estimatedMinutes
+) {
     
     override fun calculateProgress(): ProgressSnapshot {
         return when {
@@ -161,8 +242,24 @@ class GenericTask(
 class ProjectTask(
     id: Long,
     title: String,
-    description: String
-) : CompositeWorkItem(id, title, description) {
+    description: String,
+    status: WorkStatus = WorkStatus.CREATED,
+    priority: Priority = Priority.NORMAL,
+    deadline: LocalDateTime? = null,
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now(),
+    estimatedMinutes: Int = 0
+) : CompositeWorkItem(
+    id = id,
+    title = title,
+    description = description,
+    status = status,
+    priority = priority,
+    deadline = deadline,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    estimatedMinutes = estimatedMinutes
+) {
     
     override fun calculateProgress(): ProgressSnapshot {
         val activeSubTasks = subTasks.filter { it.status != WorkStatus.CANCELLED }
