@@ -2,7 +2,7 @@
 
 An Android coursework project that demonstrates a object-oriented domain model for managing academic work. The application is not a generic to-do list: it models disciplines, nested projects, specialized task types, deadlines, typed attachments, progress calculation, and task activity history.
 
-The current product is an in-memory Android application built with Kotlin, Jetpack Compose, MVVM, `StateFlow`, and a repository abstraction. It is intentionally not connected to Room/SQLite yet. The project first stabilizes domain behavior and UI workflows before adding persistent storage.
+The current product is a local Android application built with Kotlin, Jetpack Compose, MVVM, `StateFlow`, and a repository abstraction. It intentionally avoids Room/SQLite for now and uses a simple local snapshot file for runtime persistence.
 
 ## Product Vision
 
@@ -19,7 +19,7 @@ The main goal of the project is to demonstrate real OOP usage in a practical And
 
 ## Current Status
 
-The current implementation provides a feature-complete in-memory workflow:
+The current implementation provides a feature-complete local workflow:
 
 - discipline CRUD;
 - root task creation and deletion;
@@ -39,9 +39,10 @@ The current implementation provides a feature-complete in-memory workflow:
 - discipline-level task search, filters, and sorting;
 - filters by status, priority, task type, overdue state, attachment purpose, GitHub attachments, and tasks with logs;
 - sorting by deadline, priority, progress, and updated timestamp;
-- persistence-ready record and mapper layer.
+- persistence-ready record and mapper layer;
+- simple local file persistence across application restarts.
 
-The application state is still stored in memory. Data is expected to reset after application restart until the Room persistence phase is implemented.
+The application state is loaded from a local snapshot file on startup and saved after repository mutations. Demo data is used only when no saved snapshot exists yet.
 
 ## Implemented Domain Model
 
@@ -222,9 +223,9 @@ Current runtime storage is provided by `InMemoryTaskRepository`. It uses `StateF
 
 The domain layer is kept separate from Android UI. UI-specific input models such as `WorkItemEditResult` and attachment form results belong to the presentation layer.
 
-## Persistence-Ready Layer
+## Local Persistence Layer
 
-The project already contains a persistence-ready mapping layer. It is not active runtime storage yet.
+The project contains a persistence-ready mapping layer that is also used by the current lightweight local storage implementation.
 
 Implemented persistence contract:
 
@@ -235,10 +236,11 @@ Implemented persistence contract:
 - `ExamTopicRecord`;
 - `WorkLogEntryRecord`;
 - `PersistenceBundle`;
+- `PersistenceSnapshot`;
 - domain-to-record mappers;
 - record-to-domain restoration logic.
 
-This layer is intended to make the future Room implementation safer. The domain model should not become a Room entity directly.
+Runtime persistence is intentionally simple: `FileBackedTaskRepository` wraps `InMemoryTaskRepository`, writes a full snapshot after mutations, and restores the snapshot on the next launch. The domain model does not become a storage model.
 
 ## Development Progress
 
@@ -307,32 +309,24 @@ Added a dashboard and search/filter layer on top of the in-memory repository:
 
 Recent activity on the dashboard is intentionally out of scope for this phase. Work logs remain available in task detail, and total logged time is included in analytics.
 
+### Phase 6 — Simple Local Persistence
+
+Completed.
+
+Added lightweight snapshot persistence without Room or another database:
+
+- app state is restored from `study_tasks.snapshot` in internal app storage;
+- demo data is used only when no snapshot exists;
+- repository mutations automatically save the latest snapshot;
+- existing record/mapping layer is reused as the persistence contract;
+- `InMemoryTaskRepository` remains the active in-process store;
+- file-backed persistence is covered by unit tests.
+
 ## Roadmap
-
-### Phase 6 — Room Persistence
-
-Planned next.
-
-The goal is to replace in-memory runtime storage with local SQLite persistence using Room while keeping the existing domain model intact.
-
-Planned work:
-
-- add Room and KSP dependencies;
-- create Room entities from existing record models;
-- create DAO interfaces;
-- implement `RoomTaskRepository`;
-- keep `TaskRepository` as the public abstraction;
-- preserve `InMemoryTaskRepository` for tests and demo mode;
-- add migrations;
-- test domain-to-entity-to-domain round trips;
-- verify nested `ProjectTask` restoration;
-- verify attachments and logs persistence.
-
-Important rule: domain classes must not become Room entities directly.
 
 ### Phase 7 — Real External Integrations
 
-Planned after persistence.
+Planned after local persistence.
 
 Possible integrations:
 
@@ -370,8 +364,7 @@ Planned work:
 
 ## Known Limitations
 
-- Runtime data is currently in memory only.
-- Data is lost after application restart.
+- Local persistence is snapshot-based, not a relational database.
 - GitHub sync is mocked.
 - Google Classroom sync and submit actions are mocked.
 - Local file opening is not backed by Android file picker permissions yet.
@@ -382,7 +375,7 @@ Planned work:
 
 - Some UI screens are feature-rich and should be split further into smaller composables if they continue to grow.
 - Search/filter controls are implemented separately for the work list and global search; a shared presentation helper could reduce duplication later.
-- Room persistence should be implemented only after the domain behavior and analytics requirements are stable.
+- Snapshot persistence is intentionally simple; a database can still be added later if the coursework scope changes.
 - ViewModel tests should be expanded after the current repository/domain tests are stable.
 
 ## Testing Status
@@ -398,6 +391,7 @@ The project includes unit tests for:
 - attachment and log repository behavior.
 - recursive analytics calculations;
 - recursive global search with attachment-purpose filtering.
+- local snapshot save/load behavior.
 
 Current verification command:
 

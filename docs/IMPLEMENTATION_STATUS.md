@@ -1,9 +1,10 @@
-# Project Implementation Status (Phase 5 Audit)
+# Project Implementation Status (Phase 6 Audit)
 
 ## Core Architecture
 - [x] Clean MVVM + UDF structure.
 - [x] In-memory persistence with revision-based StateFlow updates.
-- [x] Persistence Contract (Records) and Mappers (ready for Room).
+- [x] Persistence contract with records, mappers, and a local snapshot format.
+- [x] Simple file-backed runtime persistence without Room/SQLite.
 
 ## Domain Model
 - [x] `WorkItem` polymorphic hierarchy (Generic, Reading, Programming, Exam, Seminar, Project).
@@ -15,6 +16,8 @@
 ## Repository & Data
 - [x] `TaskRepository` interface with full CRUD (including recursive operations).
 - [x] `InMemoryTaskRepository` implementation with ID generation and change notification.
+- [x] `FileBackedTaskRepository` auto-saves after repository mutations.
+- [x] `LocalTaskStorage` loads/saves one app snapshot file.
 - [x] `WorkItemFactory` for secure task creation and metadata initialization.
 - [x] Persistence Mappers synchronized with refined domain models.
 
@@ -41,7 +44,10 @@
 - [x] **Dashboard Polish**: Duplicate urgent/high-priority task appearances are reduced.
 - [x] **Dashboard Empty States**: Empty dashboard data has a dedicated state.
 - [x] **README Roadmap Cleanup**: Public roadmap synchronized with implementation status.
+- [x] **Simple Local Persistence**: App data survives restart through a local snapshot file.
 
-## Phase 5 Scope Notes
+## Phase 6 Scope Notes
 - Recent activity on the dashboard is intentionally out of scope for this phase.
 - Work logs remain available in task detail, and total logged time is included in analytics.
+- Room, DAO, KSP, SQLite, migrations, and complex database concerns are intentionally out of scope.
+- Runtime still uses `InMemoryTaskRepository`; file persistence is a small wrapper around it.
