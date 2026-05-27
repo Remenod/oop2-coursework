@@ -155,6 +155,10 @@ object WorkItemPersistenceMapper {
             }
         }
 
+        bundle.workItems.forEach { record ->
+            domainMap[record.id]?.updatedAt = record.updatedAt
+        }
+
         // 3. Return sorted roots
         return bundle.workItems
             .filter { it.parentId == null }
@@ -175,9 +179,24 @@ object WorkItemPersistenceMapper {
                 testsPassed = record.testsPassed ?: 0.0,
                 repositoryUrl = record.repositoryUrl,
                 branch = record.branch,
+                estimatedMinutes = record.estimatedMinutes,
+                status = record.status,
+                priority = record.priority,
+                deadline = record.deadline,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt
+            )
+            WorkItemType.EXAM -> ExamTask(
+                id = record.id,
+                title = record.title,
+                description = record.description,
+                status = record.status,
+                priority = record.priority,
+                deadline = record.deadline,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt,
                 estimatedMinutes = record.estimatedMinutes
             )
-            WorkItemType.EXAM -> ExamTask(record.id, record.title, record.description)
             WorkItemType.SEMINAR -> SeminarTask(
                 id = record.id,
                 title = record.title,
@@ -186,22 +205,49 @@ object WorkItemPersistenceMapper {
                 materialsCollected = record.materialsCollected ?: false,
                 speechPrepared = record.speechPrepared ?: false,
                 slidesPrepared = record.slidesPrepared ?: false,
-                rehearsalDone = record.rehearsalDone ?: false
+                rehearsalDone = record.rehearsalDone ?: false,
+                status = record.status,
+                priority = record.priority,
+                deadline = record.deadline,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt,
+                estimatedMinutes = record.estimatedMinutes
             )
             WorkItemType.READING -> ReadingTask(
                 id = record.id,
                 title = record.title,
                 description = record.description,
                 readPages = record.readPages ?: 0,
-                totalPages = record.totalPages ?: 100
+                totalPages = record.totalPages ?: 100,
+                status = record.status,
+                priority = record.priority,
+                deadline = record.deadline,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt,
+                estimatedMinutes = record.estimatedMinutes
             )
-            WorkItemType.PROJECT -> ProjectTask(record.id, record.title, record.description)
-            WorkItemType.GENERIC -> GenericTask(record.id, record.title, record.description)
-        }.apply {
-            status = record.status
-            priority = record.priority
-            deadline = record.deadline
-            estimatedMinutes = record.estimatedMinutes
+            WorkItemType.PROJECT -> ProjectTask(
+                id = record.id,
+                title = record.title,
+                description = record.description,
+                status = record.status,
+                priority = record.priority,
+                deadline = record.deadline,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt,
+                estimatedMinutes = record.estimatedMinutes
+            )
+            WorkItemType.GENERIC -> GenericTask(
+                id = record.id,
+                title = record.title,
+                description = record.description,
+                status = record.status,
+                priority = record.priority,
+                deadline = record.deadline,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt,
+                estimatedMinutes = record.estimatedMinutes
+            )
         }
     }
 }
