@@ -16,8 +16,9 @@
 ## Repository & Data
 - [x] `TaskRepository` interface with full CRUD (including recursive operations).
 - [x] `InMemoryTaskRepository` implementation with ID generation and change notification.
-- [x] `FileBackedTaskRepository` auto-saves after repository mutations.
+- [x] `LocalTaskRepository` is the runtime source of truth and auto-saves after mutations.
 - [x] `LocalTaskStorage` loads/saves one app snapshot file.
+- [x] Runtime startup uses saved data when present and an empty state otherwise.
 - [x] `WorkItemFactory` for secure task creation and metadata initialization.
 - [x] Persistence Mappers synchronized with refined domain models.
 
@@ -50,4 +51,5 @@
 - Recent activity on the dashboard is intentionally out of scope for this phase.
 - Work logs remain available in task detail, and total logged time is included in analytics.
 - Room, DAO, KSP, SQLite, migrations, and complex database concerns are intentionally out of scope.
-- Runtime still uses `InMemoryTaskRepository`; file persistence is a small wrapper around it.
+- `InMemoryTaskRepository` remains available for tests and non-persistent scenarios.
+- No placeholder seed data is injected into the runtime app.

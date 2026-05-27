@@ -14,7 +14,7 @@ The main goal of the project is to demonstrate real OOP usage in a practical And
 - polymorphism through task-specific progress calculation;
 - composition through `ProjectTask`, which can contain nested `WorkItem` objects;
 - encapsulation through controlled mutation methods such as `updateMetadata()`, `updatePages()`, `setUserStatus()`, and checklist operations;
-- repository abstraction through `TaskRepository` and `InMemoryTaskRepository`;
+- repository abstraction through `TaskRepository`, `LocalTaskRepository`, and `InMemoryTaskRepository`;
 - reactive UI updates through `StateFlow`.
 
 ## Current Status
@@ -42,7 +42,7 @@ The current implementation provides a feature-complete local workflow:
 - persistence-ready record and mapper layer;
 - simple local file persistence across application restarts.
 
-The application state is loaded from a local snapshot file on startup and saved after repository mutations. Demo data is used only when no saved snapshot exists yet.
+The application state is loaded from a local snapshot file on startup and saved after repository mutations. If no saved snapshot exists yet, the app starts empty.
 
 ## Implemented Domain Model
 
@@ -214,12 +214,12 @@ Domain layer
 
 Data layer
 ├── TaskRepository interface
+├── LocalTaskRepository
 ├── InMemoryTaskRepository
-├── DemoDataFactory
 └── Persistence-ready records and mappers
 ```
 
-Current runtime storage is provided by `InMemoryTaskRepository`. It uses `StateFlow` with revision-based updates to reliably notify the UI after in-place domain mutations.
+Current runtime storage is provided by `LocalTaskRepository`. It owns the in-process `StateFlow` state, uses the same mutation behavior as `InMemoryTaskRepository`, restores data from the local snapshot when it exists, starts empty otherwise, and writes a local snapshot after changes.
 
 The domain layer is kept separate from Android UI. UI-specific input models such as `WorkItemEditResult` and attachment form results belong to the presentation layer.
 
@@ -240,7 +240,7 @@ Implemented persistence contract:
 - domain-to-record mappers;
 - record-to-domain restoration logic.
 
-Runtime persistence is intentionally simple: `FileBackedTaskRepository` wraps `InMemoryTaskRepository`, writes a full snapshot after mutations, and restores the snapshot on the next launch. The domain model does not become a storage model.
+Runtime persistence is intentionally simple: `LocalTaskRepository` creates one source of truth in memory, writes a full snapshot after mutations, and restores the snapshot on the next launch. The domain model does not become a storage model.
 
 ## Development Progress
 
@@ -316,11 +316,12 @@ Completed.
 Added lightweight snapshot persistence without Room or another database:
 
 - app state is restored from `study_tasks.snapshot` in internal app storage;
-- demo data is used only when no snapshot exists;
+- an empty state is used when no snapshot exists;
 - repository mutations automatically save the latest snapshot;
 - existing record/mapping layer is reused as the persistence contract;
-- `InMemoryTaskRepository` remains the active in-process store;
-- file-backed persistence is covered by unit tests.
+- `LocalTaskRepository` is the runtime source of truth;
+- `InMemoryTaskRepository` remains available for tests and non-persistent scenarios;
+- local persistence is covered by unit tests.
 
 ## Roadmap
 
