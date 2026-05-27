@@ -8,6 +8,10 @@ interface TaskRepository {
     fun observeDiscipline(id: Long): Flow<Discipline?>
     fun observeWorkItem(id: Long): Flow<WorkItem?>
 
+    fun getDisciplinesSnapshot(): List<Discipline>
+    fun getDisciplineSnapshot(id: Long): Discipline?
+    fun getWorkItemSnapshot(id: Long): WorkItem?
+
     suspend fun addDiscipline(discipline: Discipline): Discipline
     suspend fun updateDiscipline(discipline: Discipline)
     suspend fun deleteDiscipline(id: Long)

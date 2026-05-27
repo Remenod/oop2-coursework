@@ -35,6 +35,20 @@ class InMemoryTaskRepositoryTest {
     }
 
     @Test
+    fun testInitialDisciplinesAreAvailableImmediately() = runTest {
+        val discipline = Discipline(100L, "Seeded", "Teacher", 1, 0)
+        val project = ProjectTask(101L, "Project", "Desc")
+        val nested = GenericTask(102L, "Nested", "Desc")
+        project.addSubTask(nested)
+        discipline.addWorkItem(project)
+
+        val seededRepository = InMemoryTaskRepository(listOf(discipline))
+
+        assertEquals(1, seededRepository.observeDisciplines().first().size)
+        assertEquals(102L, seededRepository.observeWorkItem(102L).first()?.id)
+    }
+
+    @Test
     fun testUpdateDisciplinePreservesWorkItems() = runTest {
         val discipline = Discipline(1L, "Original", "T", 1, 0)
         repository.addDiscipline(discipline)

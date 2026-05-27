@@ -7,26 +7,36 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.atomic.AtomicLong
 
-class InMemoryTaskRepository : TaskRepository {
+class InMemoryTaskRepository(
+    initialDisciplines: List<Discipline> = emptyList()
+) : TaskRepository {
     
     private data class RepositoryState(
         val revision: Long = 0L,
-        val disciplines: List<Discipline> = emptyList()
+        val disciplines: List<Discipline> = emptyList(),
+        val disciplineById: Map<Long, Discipline> = disciplines.associateBy { it.id },
+        val workItemById: Map<Long, WorkItem> = disciplines
+            .flatMap { it.getAllWorkItemsRecursive() }
+            .associateBy { it.id }
     )
 
-    private val _state = MutableStateFlow(RepositoryState())
-    private val idGenerator = AtomicLong(2000L)
+    private val _state = MutableStateFlow(RepositoryState(disciplines = initialDisciplines))
+    private val idGenerator = AtomicLong(maxOf(2000L, initialDisciplines.maxExistingId()))
 
     override fun observeDisciplines(): Flow<List<Discipline>> = 
         _state.map { it.disciplines }
 
     override fun observeDiscipline(id: Long): Flow<Discipline?> = 
-        _state.map { state -> state.disciplines.find { it.id == id } }
+        _state.map { state -> state.disciplineById[id] }
 
     override fun observeWorkItem(id: Long): Flow<WorkItem?> = 
-        _state.map { state -> 
-            state.disciplines.flatMap { it.workItems }.findRecursive(id) 
-        }
+        _state.map { state -> state.workItemById[id] }
+
+    override fun getDisciplinesSnapshot(): List<Discipline> = _state.value.disciplines
+
+    override fun getDisciplineSnapshot(id: Long): Discipline? = _state.value.disciplineById[id]
+
+    override fun getWorkItemSnapshot(id: Long): WorkItem? = _state.value.workItemById[id]
 
     private fun List<WorkItem>.findRecursive(id: Long): WorkItem? {
         this.forEach { 
@@ -200,5 +210,13 @@ class InMemoryTaskRepository : TaskRepository {
                 break
             }
         }
+    }
+
+    private fun List<Discipline>.maxExistingId(): Long {
+        val disciplineIds = map { it.id }
+        val itemIds = flatMap { it.getAllWorkItemsRecursive() }.flatMap { item ->
+            listOf(item.id) + item.attachments.map { it.id } + item.logs.map { it.id }
+        }
+        return (disciplineIds + itemIds).maxOrNull() ?: 0L
     }
 }

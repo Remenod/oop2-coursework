@@ -22,20 +22,13 @@ class WorkDetailViewModel(
 
     val uiState: StateFlow<WorkDetailUiState> = repository.observeWorkItem(workItemId)
         .combine(_actionError) { item, actionError ->
-            if (item == null) {
-                WorkDetailUiState(error = "Task not found")
-            } else {
-                WorkDetailUiState(
-                    item = item.toDetailUiModel(),
-                    actionError = actionError
-                )
-            }
+            item.toUiState(actionError)
         }
         .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = WorkDetailUiState(isLoading = true)
+            initialValue = repository.getWorkItemSnapshot(workItemId).toUiState(_actionError.value)
         )
 
     fun clearActionError() {
@@ -378,6 +371,17 @@ class WorkDetailViewModel(
     fun deleteThisTask() {
         viewModelScope.launch {
             repository.deleteWorkItem(workItemId)
+        }
+    }
+
+    private fun WorkItem?.toUiState(actionError: String?): WorkDetailUiState {
+        return if (this == null) {
+            WorkDetailUiState(error = "Task not found")
+        } else {
+            WorkDetailUiState(
+                item = toDetailUiModel(),
+                actionError = actionError
+            )
         }
     }
 

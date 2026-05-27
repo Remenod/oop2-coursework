@@ -17,16 +17,12 @@ class DisciplineListViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<DisciplineListUiState> = repository.observeDisciplines()
-        .map { disciplines ->
-            DisciplineListUiState(
-                disciplines = disciplines.map { it.toCardUiModel() }
-            )
-        }
+        .map { disciplines -> disciplines.toUiState() }
         .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = DisciplineListUiState(isLoading = true)
+            initialValue = repository.getDisciplinesSnapshot().toUiState()
         )
 
     fun addDiscipline(name: String, teacher: String, semester: Int, color: Int) {
@@ -45,6 +41,12 @@ class DisciplineListViewModel(
         viewModelScope.launch {
             repository.deleteDiscipline(id)
         }
+    }
+
+    private fun List<Discipline>.toUiState(): DisciplineListUiState {
+        return DisciplineListUiState(
+            disciplines = map { it.toCardUiModel() }
+        )
     }
 
     private fun Discipline.toCardUiModel(): DisciplineCardUiModel {

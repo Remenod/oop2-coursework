@@ -23,46 +23,13 @@ class TaskSearchViewModel(
         repository.observeDisciplines(),
         controls
     ) { disciplines, controls ->
-        val allItems = disciplines.flatMap { discipline ->
-            discipline.getAllWorkItemsRecursive().map { item ->
-                SearchableTask(
-                    item = item,
-                    disciplineId = discipline.id,
-                    disciplineName = discipline.name
-                )
-            }
-        }
-
-        val visibleItems = allItems
-            .filter { it.item.matchesQuery(controls.query) }
-            .filter { it.item.matchesType(controls.typeFilter) }
-            .filter { controls.statusFilter == null || it.item.status == controls.statusFilter }
-            .filter { controls.priorityFilter == null || it.item.priority == controls.priorityFilter }
-            .filter { controls.attachmentPurposeFilter == null || it.item.hasAttachmentPurpose(controls.attachmentPurposeFilter) }
-            .filter { !controls.overdueOnly || it.item.isOverdue() }
-            .filter { !controls.githubOnly || it.item.hasGitHubAttachment() }
-            .filter { !controls.withLogsOnly || it.item.logs.isNotEmpty() }
-            .sortBy(controls.sortOption)
-
-        TaskSearchUiState(
-            items = visibleItems.map { it.toUiModel() },
-            totalItems = allItems.size,
-            query = controls.query,
-            typeFilter = controls.typeFilter,
-            statusFilter = controls.statusFilter,
-            priorityFilter = controls.priorityFilter,
-            attachmentPurposeFilter = controls.attachmentPurposeFilter,
-            overdueOnly = controls.overdueOnly,
-            githubOnly = controls.githubOnly,
-            withLogsOnly = controls.withLogsOnly,
-            sortOption = controls.sortOption
-        )
+        disciplines.toUiState(controls)
     }
     .flowOn(Dispatchers.Default)
     .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = TaskSearchUiState(isLoading = true)
+        initialValue = repository.getDisciplinesSnapshot().toUiState(controls.value)
     )
 
     fun updateQuery(value: String) {
@@ -103,6 +70,43 @@ class TaskSearchViewModel(
 
     fun clearFilters() {
         controls.value = TaskSearchControls()
+    }
+
+    private fun List<Discipline>.toUiState(controls: TaskSearchControls): TaskSearchUiState {
+        val allItems = flatMap { discipline ->
+            discipline.getAllWorkItemsRecursive().map { item ->
+                SearchableTask(
+                    item = item,
+                    disciplineId = discipline.id,
+                    disciplineName = discipline.name
+                )
+            }
+        }
+
+        val visibleItems = allItems
+            .filter { it.item.matchesQuery(controls.query) }
+            .filter { it.item.matchesType(controls.typeFilter) }
+            .filter { controls.statusFilter == null || it.item.status == controls.statusFilter }
+            .filter { controls.priorityFilter == null || it.item.priority == controls.priorityFilter }
+            .filter { controls.attachmentPurposeFilter == null || it.item.hasAttachmentPurpose(controls.attachmentPurposeFilter) }
+            .filter { !controls.overdueOnly || it.item.isOverdue() }
+            .filter { !controls.githubOnly || it.item.hasGitHubAttachment() }
+            .filter { !controls.withLogsOnly || it.item.logs.isNotEmpty() }
+            .sortBy(controls.sortOption)
+
+        return TaskSearchUiState(
+            items = visibleItems.map { it.toUiModel() },
+            totalItems = allItems.size,
+            query = controls.query,
+            typeFilter = controls.typeFilter,
+            statusFilter = controls.statusFilter,
+            priorityFilter = controls.priorityFilter,
+            attachmentPurposeFilter = controls.attachmentPurposeFilter,
+            overdueOnly = controls.overdueOnly,
+            githubOnly = controls.githubOnly,
+            withLogsOnly = controls.withLogsOnly,
+            sortOption = controls.sortOption
+        )
     }
 
     private fun SearchableTask.toUiModel(): TaskSearchItemUiModel {
