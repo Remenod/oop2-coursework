@@ -7,15 +7,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.atomic.AtomicLong
 
-class InMemoryTaskRepository : TaskRepository {
+class InMemoryTaskRepository(
+    initialDisciplines: List<Discipline> = emptyList()
+) : TaskRepository {
     
     private data class RepositoryState(
         val revision: Long = 0L,
         val disciplines: List<Discipline> = emptyList()
     )
 
-    private val _state = MutableStateFlow(RepositoryState())
-    private val idGenerator = AtomicLong(2000L)
+    private val _state = MutableStateFlow(RepositoryState(disciplines = initialDisciplines))
+    private val idGenerator = AtomicLong(maxOf(2000L, initialDisciplines.maxExistingId()))
 
     override fun observeDisciplines(): Flow<List<Discipline>> = 
         _state.map { it.disciplines }
@@ -27,6 +29,8 @@ class InMemoryTaskRepository : TaskRepository {
         _state.map { state -> 
             state.disciplines.flatMap { it.workItems }.findRecursive(id) 
         }
+
+    fun getDisciplinesSnapshot(): List<Discipline> = _state.value.disciplines
 
     private fun List<WorkItem>.findRecursive(id: Long): WorkItem? {
         this.forEach { 
@@ -200,5 +204,13 @@ class InMemoryTaskRepository : TaskRepository {
                 break
             }
         }
+    }
+
+    private fun List<Discipline>.maxExistingId(): Long {
+        val disciplineIds = map { it.id }
+        val workItemIds = flatMap { it.getAllWorkItemsRecursive() }.flatMap { item ->
+            listOf(item.id) + item.attachments.map { it.id } + item.logs.map { it.id }
+        }
+        return (disciplineIds + workItemIds).maxOrNull() ?: 0L
     }
 }
