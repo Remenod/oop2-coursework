@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
             Oop2courseworkTheme {
                 val appContainer by produceState<AppContainer?>(initialValue = null) {
                     value = withContext(Dispatchers.Default) {
-                        AppContainer()
+                        AppContainer().also { it.warmUp() }
                     }
                 }
 

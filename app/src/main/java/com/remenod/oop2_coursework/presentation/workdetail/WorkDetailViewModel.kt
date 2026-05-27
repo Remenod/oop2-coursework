@@ -405,7 +405,7 @@ class WorkDetailViewModel(
             status = status,
             priority = priority,
             type = type,
-            typeName = this::class.simpleName ?: "Task",
+            typeName = type.displayName(),
             
             deadline = deadline,
             deadlineText = DateTimeUiFormatter.formatDateTime(deadline),
@@ -497,5 +497,16 @@ class WorkDetailViewModel(
             minutesSpentText = DateTimeUiFormatter.estimatedTime(minutesSpent),
             createdAtText = DateTimeUiFormatter.formatDateTime(createdAt)
         )
+    }
+
+    private fun WorkItemType.displayName(): String {
+        return when (this) {
+            WorkItemType.GENERIC -> "Generic Task"
+            WorkItemType.PROGRAMMING -> "Programming Task"
+            WorkItemType.EXAM -> "Exam Task"
+            WorkItemType.SEMINAR -> "Seminar Task"
+            WorkItemType.READING -> "Reading Task"
+            WorkItemType.PROJECT -> "Project Task"
+        }
     }
 }
