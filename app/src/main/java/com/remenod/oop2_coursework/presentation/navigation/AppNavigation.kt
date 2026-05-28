@@ -82,7 +82,13 @@ fun AppNavHost(appContainer: AppContainer) {
             content = { backStackEntry ->
                 val workItemId = backStackEntry.arguments?.getLong("workItemId") ?: 0L
                 val viewModel: WorkDetailViewModel = viewModel(
-                    factory = ViewModelFactory { WorkDetailViewModel(appContainer.repository, workItemId) }
+                    factory = ViewModelFactory {
+                        WorkDetailViewModel(
+                            repository = appContainer.repository,
+                            workItemId = workItemId,
+                            gitHubRepositoryService = appContainer.gitHubRepositoryService
+                        )
+                    }
                 )
                 WorkDetailScreen(
                     viewModel = viewModel,

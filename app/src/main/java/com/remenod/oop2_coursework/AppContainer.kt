@@ -1,10 +1,12 @@
 package com.remenod.oop2_coursework
 
 import android.content.Context
+import com.remenod.oop2_coursework.data.integration.github.HttpGitHubRepositoryService
 import com.remenod.oop2_coursework.data.persistence.local.LocalTaskStorage
 import com.remenod.oop2_coursework.data.repository.LocalTaskRepository
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.domain.service.AnalyticsService
+import com.remenod.oop2_coursework.domain.service.GitHubRepositoryService
 import java.io.File
 
 class AppContainer(context: Context) {
@@ -17,4 +19,6 @@ class AppContainer(context: Context) {
     )
     
     val analyticsService = AnalyticsService()
+
+    val gitHubRepositoryService: GitHubRepositoryService = HttpGitHubRepositoryService()
 }
