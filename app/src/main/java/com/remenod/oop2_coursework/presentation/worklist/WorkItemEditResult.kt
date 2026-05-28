@@ -15,11 +15,5 @@ data class WorkItemEditResult(
     val estimatedMinutes: Int,
 
     val totalPages: Int? = null,
-    val readPages: Int? = null,
-
-    val commitsCount: Int? = null,
-    val requiredCommits: Int? = null,
-    val issuesResolved: Int? = null,
-    val requiredIssues: Int? = null,
-    val testsPassed: Double? = null
+    val readPages: Int? = null
 )

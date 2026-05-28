@@ -38,7 +38,6 @@ data class TaskSearchItemUiModel(
 enum class TaskSearchTypeFilter(val label: String) {
     ALL("All"),
     GENERIC("Generic"),
-    PROGRAMMING("Programming"),
     EXAM("Exam"),
     SEMINAR("Seminar"),
     READING("Reading"),

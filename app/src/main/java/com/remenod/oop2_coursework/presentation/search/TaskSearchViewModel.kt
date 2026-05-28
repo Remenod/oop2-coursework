@@ -130,7 +130,6 @@ class TaskSearchViewModel(
         return when (typeFilter) {
             TaskSearchTypeFilter.ALL -> true
             TaskSearchTypeFilter.GENERIC -> this is GenericTask
-            TaskSearchTypeFilter.PROGRAMMING -> this is ProgrammingTask
             TaskSearchTypeFilter.EXAM -> this is ExamTask
             TaskSearchTypeFilter.SEMINAR -> this is SeminarTask
             TaskSearchTypeFilter.READING -> this is ReadingTask
@@ -140,7 +139,6 @@ class TaskSearchViewModel(
 
     private fun WorkItem.typeLabel(): String {
         return when (this) {
-            is ProgrammingTask -> "Programming"
             is ExamTask -> "Exam"
             is SeminarTask -> "Seminar"
             is ReadingTask -> "Reading"

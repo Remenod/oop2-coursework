@@ -83,29 +83,6 @@ class WorkDetailViewModel(
         }
     }
 
-    fun updateProgrammingStats(commitsCount: Int, requiredCommits: Int, issuesResolved: Int, requiredIssues: Int, testsPassed: Double) {
-        if (commitsCount < 0 || requiredCommits < 0 || issuesResolved < 0 || requiredIssues < 0 || testsPassed !in 0.0..1.0) {
-            _actionError.value = "Invalid programming stats"
-            return
-        }
-
-        viewModelScope.launch {
-            repository.observeWorkItem(workItemId).first()?.let { item ->
-                if (item is ProgrammingTask) {
-                    item.commitsCount = commitsCount
-                    item.requiredCommits = requiredCommits
-                    item.issuesResolved = issuesResolved
-                    item.requiredIssues = requiredIssues
-                    item.testsPassed = testsPassed
-                    item.touch()
-                    repository.updateWorkItem(item)
-                    addAutoLog("Updated programming stats")
-                    _actionError.value = null
-                }
-            }
-        }
-    }
-
     fun addExamTopic(name: String, confidence: Int) {
         if (name.isBlank()) return
         if (confidence !in 0..100) {
@@ -115,10 +92,14 @@ class WorkDetailViewModel(
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask) {
-                    item.topics.add(ExamTopic(name, confidence))
-                    item.touch()
-                    repository.updateWorkItem(item)
-                    addAutoLog("Added exam topic: $name")
+                    try {
+                        item.addTopic(name, confidence)
+                        repository.updateWorkItem(item)
+                        addAutoLog("Added exam topic: $name")
+                        _actionError.value = null
+                    } catch (e: Exception) {
+                        _actionError.value = e.message ?: "Could not add topic"
+                    }
                 }
             }
         }
@@ -132,11 +113,15 @@ class WorkDetailViewModel(
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask && index in item.topics.indices) {
-                    val topic = item.topics[index]
-                    item.topics[index] = topic.copy(confidence = confidence)
-                    item.touch()
-                    repository.updateWorkItem(item)
-                    addAutoLog("Updated exam topic confidence: ${topic.name}")
+                    try {
+                        val topic = item.topics[index]
+                        item.updateTopicConfidence(index, confidence)
+                        repository.updateWorkItem(item)
+                        addAutoLog("Updated exam topic confidence: ${topic.name}")
+                        _actionError.value = null
+                    } catch (e: Exception) {
+                        _actionError.value = e.message ?: "Could not update topic"
+                    }
                 }
             }
         }
@@ -146,11 +131,9 @@ class WorkDetailViewModel(
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is ExamTask && index in item.topics.indices) {
-                    val name = item.topics[index].name
-                    item.topics.removeAt(index)
-                    item.touch()
+                    val removed = item.removeTopic(index)
                     repository.updateWorkItem(item)
-                    addAutoLog("Removed exam topic: $name")
+                    addAutoLog("Removed exam topic: ${removed.name}")
                 }
             }
         }
@@ -160,14 +143,7 @@ class WorkDetailViewModel(
         viewModelScope.launch {
             repository.observeWorkItem(workItemId).first()?.let { item ->
                 if (item is SeminarTask) {
-                    when (stage) {
-                        SeminarStageType.TOPIC_SELECTED -> item.topicSelected = checked
-                        SeminarStageType.MATERIALS_COLLECTED -> item.materialsCollected = checked
-                        SeminarStageType.SPEECH_PREPARED -> item.speechPrepared = checked
-                        SeminarStageType.SLIDES_PREPARED -> item.slidesPrepared = checked
-                        SeminarStageType.REHEARSAL_DONE -> item.rehearsalDone = checked
-                    }
-                    item.touch()
+                    item.setStage(stage, checked)
                     repository.updateWorkItem(item)
                     addAutoLog("Updated seminar stage: $stage to $checked")
                 }
@@ -250,15 +226,11 @@ class WorkDetailViewModel(
     fun addAttachment(result: AttachmentEditResult) {
         viewModelScope.launch {
             try {
-                val currentItem = repository.observeWorkItem(workItemId).first()
-                requireNotNull(currentItem) { "Task not found" }
-
                 val attachment = AttachmentFactory.createFrom(result)
                 repository.addAttachment(workItemId, attachment)
 
-                if (currentItem is ProgrammingTask && attachment is GitHubRepositoryLink) {
-                    addGitHubProgrammingScaffold(currentItem, attachment)
-                    addAutoLog("Linked GitHub repository ${attachment.fullName ?: attachment.title}. ${attachment.programmingTaskSyncHint()}")
+                if (attachment is GitHubRepositoryLink) {
+                    addAutoLog("Linked GitHub repository ${attachment.fullName ?: attachment.title}. ${attachment.syncHint()}")
                 } else {
                     addAutoLog("Added attachment: ${attachment.getDisplayName()}")
                 }
@@ -268,28 +240,6 @@ class WorkDetailViewModel(
                 _actionError.value = e.message ?: "Attachment creation failed"
             }
         }
-    }
-
-    private suspend fun addGitHubProgrammingScaffold(
-        item: ProgrammingTask,
-        attachment: GitHubRepositoryLink
-    ) {
-        item.repositoryUrl = attachment.repositoryInfo?.canonicalUrl ?: attachment.url
-        item.branch = attachment.effectiveBranch
-
-        if (item.checklist.isNotEmpty()) {
-            repository.updateWorkItem(item)
-            return
-        }
-
-        val repo = attachment.fullName ?: attachment.title
-        val branchText = attachment.effectiveBranch?.let { " on $it" } ?: ""
-        listOf(
-            "Clone repository $repo",
-            "Create or checkout working branch$branchText",
-            "Push commits and keep tests passing"
-        ).forEach { item.addChecklistItem(it) }
-        repository.updateWorkItem(item)
     }
 
     fun removeAttachment(attachmentId: Long) {
@@ -322,9 +272,10 @@ class WorkDetailViewModel(
                 require(attachment is Syncable) { "This attachment type does not support sync" }
 
                 attachment.sync()
+                repository.updateWorkItem(item)
 
-                val message = if (item is ProgrammingTask && attachment is GitHubRepositoryLink) {
-                    "GitHub sync placeholder: later this can update commits, issues and tests for ${attachment.fullName ?: attachment.title}."
+                val message = if (attachment is GitHubRepositoryLink) {
+                    "GitHub sync placeholder: refreshed repository activity for ${attachment.fullName ?: attachment.title}."
                 } else {
                     "Synced attachment: ${attachment.title}"
                 }
@@ -332,6 +283,38 @@ class WorkDetailViewModel(
                 _actionError.value = message
             } catch (e: Exception) {
                 _actionError.value = e.message ?: "Sync failed"
+            }
+        }
+    }
+
+    fun importGitHubCandidates(attachmentId: Long) {
+        viewModelScope.launch {
+            try {
+                val item = repository.observeWorkItem(workItemId).first() ?: error("Task not found")
+                require(item is AtomicWorkItem) { "Checklist import is available for atomic tasks only" }
+
+                val attachment = item.attachments.find { it.id == attachmentId } as? GitHubRepositoryLink
+                    ?: error("GitHub attachment not found")
+                val candidates = attachment.importableCandidates
+                require(candidates.isNotEmpty()) { "No GitHub items are available to import yet" }
+
+                val existing = item.checklist.map { it.text }.toSet()
+                val imported = candidates
+                    .map { it.toChecklistText() }
+                    .filterNot { it in existing }
+
+                imported.forEach(item::addChecklistItem)
+                repository.updateWorkItem(item)
+
+                val message = if (imported.isEmpty()) {
+                    "GitHub checklist import skipped: all items already exist"
+                } else {
+                    "Imported ${imported.size} GitHub item(s) into checklist"
+                }
+                addAutoLog(message)
+                _actionError.value = message
+            } catch (e: Exception) {
+                _actionError.value = e.message ?: "GitHub import failed"
             }
         }
     }
@@ -384,7 +367,6 @@ class WorkDetailViewModel(
         val type = when (this) {
             is ProjectTask -> WorkItemType.PROJECT
             is ReadingTask -> WorkItemType.READING
-            is ProgrammingTask -> WorkItemType.PROGRAMMING
             is ExamTask -> WorkItemType.EXAM
             is SeminarTask -> WorkItemType.SEMINAR
             else -> WorkItemType.GENERIC
@@ -416,13 +398,6 @@ class WorkDetailViewModel(
             
             readPages = (this as? ReadingTask)?.readPages,
             totalPages = (this as? ReadingTask)?.totalPages,
-            commitsCount = (this as? ProgrammingTask)?.commitsCount,
-            requiredCommits = (this as? ProgrammingTask)?.requiredCommits,
-            issuesResolved = (this as? ProgrammingTask)?.issuesResolved,
-            requiredIssues = (this as? ProgrammingTask)?.requiredIssues,
-            testsPassed = (this as? ProgrammingTask)?.testsPassed,
-            repositoryUrl = (this as? ProgrammingTask)?.repositoryUrl,
-            branch = (this as? ProgrammingTask)?.branch,
 
             examTopics = (this as? ExamTask)?.topics?.mapIndexed { i, t ->
                 ExamTopicUiModel(i, t.name, t.confidence)
@@ -448,6 +423,12 @@ class WorkDetailViewModel(
     }
 
     private fun Attachment.toUiModel(): AttachmentUiModel {
+        val github = this as? GitHubRepositoryLink
+        val cloud = this as? CloudFileResource
+        val hasGitHubSnapshot = github?.repositorySnapshot?.let {
+            it.syncedAt != null || it.workCandidates.isNotEmpty()
+        } == true
+
         return AttachmentUiModel(
             id = id,
             title = title,
@@ -476,11 +457,27 @@ class WorkDetailViewModel(
             lastOpenedText = lastOpenedAt?.let { DateTimeUiFormatter.formatDateTime(it) } ?: "Never opened",
             canSync = this is Syncable,
             canSubmit = this is Submittable,
-            syncHint = (this as? GitHubRepositoryLink)?.programmingTaskSyncHint(),
-            providerLabel = (this as? CloudFileResource)?.cloudProvider,
-            branchLabel = (this as? GitHubRepositoryLink)?.effectiveBranch,
-            repositoryFullName = (this as? GitHubRepositoryLink)?.fullName
+            syncHint = github?.syncHint(),
+            providerLabel = cloud?.cloudProvider,
+            branchLabel = github?.effectiveBranch,
+            repositoryFullName = github?.fullName,
+            activeIssuesCount = github?.activeIssuesCount?.takeIf { hasGitHubSnapshot },
+            openPullRequestsCount = github?.openPullRequestsCount?.takeIf { hasGitHubSnapshot },
+            lastRepositoryActivityText = github?.repositorySnapshot?.lastRepositoryActivityAt
+                ?.let(DateTimeUiFormatter::formatDateTime),
+            syncedAtText = github?.repositorySnapshot?.syncedAt
+                ?.let(DateTimeUiFormatter::formatDateTime),
+            importableCandidateCount = github?.importableCandidates?.size ?: 0,
+            canImportCandidates = github?.importableCandidates?.isNotEmpty() == true
         )
+    }
+
+    private fun GitHubWorkCandidate.toChecklistText(): String {
+        val prefix = when (type) {
+            GitHubWorkCandidateType.ISSUE -> "Issue"
+            GitHubWorkCandidateType.PULL_REQUEST -> "PR"
+        }
+        return "$prefix #$number: $title"
     }
 
     private fun WorkLogEntry.toUiModel(): WorkLogEntryUiModel {

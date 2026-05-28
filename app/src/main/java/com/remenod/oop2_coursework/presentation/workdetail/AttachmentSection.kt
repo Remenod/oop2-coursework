@@ -3,6 +3,7 @@ package com.remenod.oop2_coursework.presentation.workdetail
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,7 +21,8 @@ fun AttachmentSection(
     onRemove: (Long) -> Unit,
     onOpen: (AttachmentUiModel) -> Unit,
     onSync: (Long) -> Unit,
-    onSubmit: (Long) -> Unit
+    onSubmit: (Long) -> Unit,
+    onImportCandidates: (Long) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -46,7 +48,8 @@ fun AttachmentSection(
                     onRemove = { onRemove(attachment.id) },
                     onOpen = { onOpen(attachment) },
                     onSync = { onSync(attachment.id) },
-                    onSubmit = { onSubmit(attachment.id) }
+                    onSubmit = { onSubmit(attachment.id) },
+                    onImportCandidates = { onImportCandidates(attachment.id) }
                 )
             }
         }
@@ -59,7 +62,8 @@ fun AttachmentItem(
     onRemove: () -> Unit,
     onOpen: () -> Unit,
     onSync: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onImportCandidates: () -> Unit
 ) {
     val icon = when (attachment.subtypeLabel) {
         "GitHub" -> Icons.Default.Code
@@ -113,6 +117,30 @@ fun AttachmentItem(
                 }
             }
 
+            if (attachment.activeIssuesCount != null || attachment.openPullRequestsCount != null) {
+                Text(
+                    text = "Issues: ${attachment.activeIssuesCount ?: 0} • PRs: ${attachment.openPullRequestsCount ?: 0}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            attachment.syncedAtText?.let {
+                Text(
+                    text = "Synced: $it",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            attachment.lastRepositoryActivityText?.let {
+                Text(
+                    text = "Last repository activity: $it",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Text(
                 attachment.target,
                 style = MaterialTheme.typography.labelSmall,
@@ -164,9 +192,16 @@ fun AttachmentItem(
                 }
                 if (attachment.canSubmit) {
                     TextButton(onClick = onSubmit) {
-                        Icon(Icons.Default.Send, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
                         Text("Submit")
+                    }
+                }
+                if (attachment.canImportCandidates) {
+                    TextButton(onClick = onImportCandidates) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Import (${attachment.importableCandidateCount})")
                     }
                 }
             }
