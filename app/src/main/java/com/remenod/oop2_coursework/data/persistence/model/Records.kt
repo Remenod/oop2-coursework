@@ -34,22 +34,11 @@ data class WorkItemRecord(
     val updatedAt: LocalDateTime,
     val estimatedMinutes: Int,
 
-    // Programming specialized fields
-    val repositoryUrl: String? = null,
-    val branch: String? = null,
-    val requiredCommits: Int? = null,
-    val commitsCount: Int? = null,
-    val requiredClosedIssues: Int? = null,
-    val issuesResolved: Int? = null,
-    val testsPassed: Double? = null,
-
     // Reading specialized fields
     val totalPages: Int? = null,
     val readPages: Int? = null,
 
     // Seminar specialized fields
-    val seminarTopic: String? = null,
-    val presentationRequired: Boolean? = null,
     val topicSelected: Boolean? = null,
     val materialsCollected: Boolean? = null,
     val speechPrepared: Boolean? = null,
@@ -92,8 +81,26 @@ data class AttachmentRecord(
     val branch: String? = null,
     val repositoryOwner: String? = null,
     val repositoryName: String? = null,
+    val defaultBranch: String? = null,
+    val activeIssuesCount: Int? = null,
+    val openPullRequestsCount: Int? = null,
+    val lastRepositoryActivityAt: LocalDateTime? = null,
+    val syncedAt: LocalDateTime? = null,
     val lastOpenedAt: LocalDateTime? = null,
     val createdAt: LocalDateTime
+) : Serializable
+
+data class GitHubWorkCandidateRecord(
+    val id: Long,
+    val attachmentId: Long,
+    val type: GitHubWorkCandidateType,
+    val number: Int,
+    val title: String,
+    val url: String,
+    val state: GitHubWorkCandidateState,
+    val createdAt: LocalDateTime? = null,
+    val updatedAt: LocalDateTime? = null,
+    val sortOrder: Int
 ) : Serializable
 
 data class WorkLogEntryRecord(
@@ -113,6 +120,7 @@ data class PersistenceBundle(
     val checklistItems: List<ChecklistItemRecord> = emptyList(),
     val examTopics: List<ExamTopicRecord> = emptyList(),
     val attachments: List<AttachmentRecord> = emptyList(),
+    val githubWorkCandidates: List<GitHubWorkCandidateRecord> = emptyList(),
     val logs: List<WorkLogEntryRecord> = emptyList()
 ) : Serializable
 

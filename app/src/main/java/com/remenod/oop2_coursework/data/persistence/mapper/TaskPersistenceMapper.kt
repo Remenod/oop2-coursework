@@ -18,6 +18,7 @@ object TaskPersistenceMapper {
                 checklistItems = bundles.flatMap { it.checklistItems },
                 examTopics = bundles.flatMap { it.examTopics },
                 attachments = bundles.flatMap { it.attachments },
+                githubWorkCandidates = bundles.flatMap { it.githubWorkCandidates },
                 logs = bundles.flatMap { it.logs }
             )
         )
@@ -42,6 +43,9 @@ object TaskPersistenceMapper {
             checklistItems = checklistItems.filter { it.workItemId in itemIds },
             examTopics = examTopics.filter { it.workItemId in itemIds },
             attachments = attachments.filter { it.workItemId in itemIds },
+            githubWorkCandidates = githubWorkCandidates.filter { candidate ->
+                attachments.any { it.id == candidate.attachmentId && it.workItemId in itemIds }
+            },
             logs = logs.filter { it.workItemId in itemIds }
         )
     }
