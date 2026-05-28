@@ -64,6 +64,7 @@ class GitHubRepositoryLink(
     title: String,
     url: String,
     val branch: String? = null,
+    var repositorySnapshot: GitHubRepositorySnapshot = GitHubRepositorySnapshot(defaultBranch = branch),
     createdAt: LocalDateTime = LocalDateTime.now(),
     purpose: AttachmentPurpose = AttachmentPurpose.SOURCE_CODE,
     notes: String = ""
@@ -77,6 +78,12 @@ class GitHubRepositoryLink(
     val issuesUrl: String? get() = repositoryInfo?.issuesUrl
     val pullRequestsUrl: String? get() = repositoryInfo?.pullRequestsUrl
     val commitsUrl: String? get() = repositoryInfo?.commitsUrl
+    val activeIssuesCount: Int get() = repositorySnapshot.activeIssuesCount
+    val openPullRequestsCount: Int get() = repositorySnapshot.openPullRequestsCount
+    val importableCandidates: List<GitHubWorkCandidate>
+        get() = repositorySnapshot.workCandidates.filter {
+            it.state == GitHubWorkCandidateState.OPEN || it.state == GitHubWorkCandidateState.DRAFT
+        }
 
     override fun open() {
         markOpened()
@@ -88,17 +95,73 @@ class GitHubRepositoryLink(
     override fun getOpenMode(): AttachmentOpenMode = AttachmentOpenMode.BROWSER
 
     override fun sync() {
-        // Reserved for a future GitHub API integration.
-        // Intended synergy: update ProgrammingTask commits/issues/tests from repo data.
+        repositorySnapshot = createStubSnapshot()
         println("GitHub sync placeholder for: ${repositoryInfo?.fullName ?: url}")
     }
 
-    fun programmingTaskSyncHint(): String {
+    fun syncHint(): String {
         val repo = fullName ?: title
         val branchText = effectiveBranch?.let { " on branch $it" } ?: ""
-        return "Future GitHub sync can update commits/issues/tests for $repo$branchText."
+        return "Future GitHub sync can update repository activity, open pull requests, active issues, and importable work items for $repo$branchText."
+    }
+
+    private fun createStubSnapshot(now: LocalDateTime = LocalDateTime.now()): GitHubRepositorySnapshot {
+        val baseUrl = repositoryInfo?.canonicalUrl ?: url.trimEnd('/')
+        val branchName = effectiveBranch ?: repositorySnapshot.defaultBranch ?: "main"
+        return GitHubRepositorySnapshot(
+            activeIssuesCount = 2,
+            openPullRequestsCount = 1,
+            defaultBranch = branchName,
+            lastRepositoryActivityAt = now.minusHours(3),
+            syncedAt = now,
+            workCandidates = listOf(
+                GitHubWorkCandidate(
+                    type = GitHubWorkCandidateType.ISSUE,
+                    number = 1,
+                    title = "Clarify assignment requirements",
+                    url = "$baseUrl/issues/1",
+                    state = GitHubWorkCandidateState.OPEN,
+                    updatedAt = now.minusDays(1)
+                ),
+                GitHubWorkCandidate(
+                    type = GitHubWorkCandidateType.ISSUE,
+                    number = 2,
+                    title = "Prepare submission notes",
+                    url = "$baseUrl/issues/2",
+                    state = GitHubWorkCandidateState.OPEN,
+                    updatedAt = now.minusHours(5)
+                ),
+                GitHubWorkCandidate(
+                    type = GitHubWorkCandidateType.PULL_REQUEST,
+                    number = 3,
+                    title = "Review coursework changes",
+                    url = "$baseUrl/pull/3",
+                    state = GitHubWorkCandidateState.DRAFT,
+                    updatedAt = now.minusHours(3)
+                )
+            )
+        )
     }
 }
+
+data class GitHubRepositorySnapshot(
+    val activeIssuesCount: Int = 0,
+    val openPullRequestsCount: Int = 0,
+    val defaultBranch: String? = null,
+    val lastRepositoryActivityAt: LocalDateTime? = null,
+    val syncedAt: LocalDateTime? = null,
+    val workCandidates: List<GitHubWorkCandidate> = emptyList()
+)
+
+data class GitHubWorkCandidate(
+    val type: GitHubWorkCandidateType,
+    val number: Int,
+    val title: String,
+    val url: String,
+    val state: GitHubWorkCandidateState,
+    val createdAt: LocalDateTime? = null,
+    val updatedAt: LocalDateTime? = null
+)
 
 class GoogleClassroomLink(
     id: Long,

@@ -2,77 +2,6 @@ package com.remenod.oop2_coursework.domain.model
 
 import java.time.LocalDateTime
 
-class ProgrammingTask(
-    id: Long,
-    title: String,
-    description: String,
-    var commitsCount: Int = 0,
-    var requiredCommits: Int = 5,
-    var issuesResolved: Int = 0,
-    var requiredIssues: Int = 2,
-    var testsPassed: Double = 0.0, // 0.0 to 1.0
-    var repositoryUrl: String? = null,
-    var branch: String? = null,
-    estimatedMinutes: Int = 0,
-    status: WorkStatus = WorkStatus.CREATED,
-    priority: Priority = Priority.NORMAL,
-    deadline: LocalDateTime? = null,
-    createdAt: LocalDateTime = LocalDateTime.now(),
-    updatedAt: LocalDateTime = LocalDateTime.now()
-) : AtomicWorkItem(
-    id = id,
-    title = title,
-    description = description,
-    status = status,
-    priority = priority,
-    deadline = deadline,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    estimatedMinutes = estimatedMinutes
-) {
-    
-    override fun calculateProgress(): ProgressSnapshot {
-        val components = mutableListOf<Pair<Double, Double>>()
-
-        if (checklist.isNotEmpty()) {
-            components += getChecklistProgress() to 0.25
-        }
-
-        if (requiredCommits > 0) {
-            components += (commitsCount.toDouble() / requiredCommits).coerceIn(0.0, 1.0) to 0.25
-        }
-
-        if (requiredIssues > 0) {
-            components += (issuesResolved.toDouble() / requiredIssues).coerceIn(0.0, 1.0) to 0.25
-        }
-
-        components += testsPassed.coerceIn(0.0, 1.0) to 0.25
-
-        val totalWeight = components.sumOf { it.second }
-        val percent = if (totalWeight == 0.0) 0.0 else components.sumOf { it.first * it.second } / totalWeight
-        
-        val explanation = buildString {
-            append("$commitsCount/$requiredCommits commits, ")
-            append("$issuesResolved/$requiredIssues issues, ")
-            append("${(testsPassed * 100).toInt()}% tests")
-            if (checklist.isNotEmpty()) {
-                append(", ${(getChecklistProgress() * 100).toInt()}% checklist")
-            }
-        }
-
-        return ProgressSnapshot(percent, explanation)
-    }
-
-    override fun validateCompletion(): Boolean {
-        val commitsOk = requiredCommits <= 0 || commitsCount >= requiredCommits
-        val issuesOk = requiredIssues <= 0 || issuesResolved >= requiredIssues
-        val testsOk = testsPassed >= 1.0
-        val checklistOk = checklist.isEmpty() || getChecklistProgress() >= 1.0
-
-        return commitsOk && issuesOk && testsOk && checklistOk
-    }
-}
-
 data class ExamTopic(val name: String, val confidence: Int) // 0 to 100
 
 class ExamTask(
@@ -101,12 +30,48 @@ class ExamTask(
     override fun calculateProgress(): ProgressSnapshot {
         if (topics.isEmpty()) return ProgressSnapshot(0.0, "No topics defined")
         val avgConfidence = topics.map { it.confidence }.average()
+        val weakTopics = topics.count { it.confidence < MIN_TOPIC_CONFIDENCE }
         val percent = avgConfidence / 100.0
-        return ProgressSnapshot(percent, "Average confidence: ${(percent * 100).toInt()}% across ${topics.size} topics")
+        return ProgressSnapshot(
+            percent,
+            "Average confidence: ${(percent * 100).toInt()}% across ${topics.size} topics, weak topics: $weakTopics"
+        )
+    }
+
+    fun addTopic(name: String, confidence: Int = DEFAULT_TOPIC_CONFIDENCE) {
+        require(name.isNotBlank()) { "Topic name cannot be blank" }
+        require(confidence in 0..100) { "Confidence must be between 0 and 100" }
+
+        topics.add(ExamTopic(name.trim(), confidence))
+        touch()
+    }
+
+    fun updateTopicConfidence(index: Int, confidence: Int) {
+        require(confidence in 0..100) { "Confidence must be between 0 and 100" }
+        require(index in topics.indices) { "Topic index is out of bounds" }
+
+        topics[index] = topics[index].copy(confidence = confidence)
+        touch()
+    }
+
+    fun removeTopic(index: Int): ExamTopic {
+        require(index in topics.indices) { "Topic index is out of bounds" }
+
+        val removed = topics.removeAt(index)
+        touch()
+        return removed
     }
 
     override fun validateCompletion(): Boolean {
-        return calculateProgress().percent >= 0.8
+        return topics.isNotEmpty() &&
+                topics.all { it.confidence >= MIN_TOPIC_CONFIDENCE } &&
+                calculateProgress().percent >= MIN_AVERAGE_CONFIDENCE
+    }
+
+    companion object {
+        private const val DEFAULT_TOPIC_CONFIDENCE = 50
+        private const val MIN_TOPIC_CONFIDENCE = 60
+        private const val MIN_AVERAGE_CONFIDENCE = 0.8
     }
 }
 
@@ -138,7 +103,7 @@ class SeminarTask(
 ) {
     
     override fun calculateProgress(): ProgressSnapshot {
-        val stages = listOf(topicSelected, materialsCollected, speechPrepared, slidesPrepared, rehearsalDone)
+        val stages = stageStates()
         val completedCount = stages.count { it }
         val percent = completedCount.toDouble() / stages.size
         
@@ -155,7 +120,22 @@ class SeminarTask(
     }
 
     override fun validateCompletion(): Boolean {
-        return rehearsalDone
+        return stageStates().all { it }
+    }
+
+    fun setStage(stage: SeminarStageType, completed: Boolean) {
+        when (stage) {
+            SeminarStageType.TOPIC_SELECTED -> topicSelected = completed
+            SeminarStageType.MATERIALS_COLLECTED -> materialsCollected = completed
+            SeminarStageType.SPEECH_PREPARED -> speechPrepared = completed
+            SeminarStageType.SLIDES_PREPARED -> slidesPrepared = completed
+            SeminarStageType.REHEARSAL_DONE -> rehearsalDone = completed
+        }
+        touch()
+    }
+
+    private fun stageStates(): List<Boolean> {
+        return listOf(topicSelected, materialsCollected, speechPrepared, slidesPrepared, rehearsalDone)
     }
 }
 
