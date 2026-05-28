@@ -36,7 +36,7 @@ class AttachmentEnhancementTest {
         assertEquals("vision/repo", attachment.fullName)
         assertEquals("develop", attachment.effectiveBranch)
         assertEquals(AttachmentPurpose.SOURCE_CODE, attachment.purpose)
-        assertTrue(attachment.programmingTaskSyncHint().contains("commits"))
+        assertTrue(attachment.syncHint().contains("open pull requests"))
     }
 
     @Test
@@ -54,16 +54,37 @@ class AttachmentEnhancementTest {
             url = "https://github.com/owner/repo",
             branch = "main",
             purpose = AttachmentPurpose.SOURCE_CODE,
-            notes = "Sync later with ProgrammingTask"
+            notes = "Sync later with repository activity"
         )
 
+        original.sync()
         val record = AttachmentPersistenceMapper.mapToRecord(100L, original)
-        val restored = AttachmentPersistenceMapper.restore(record) as GitHubRepositoryLink
+        val candidates = AttachmentPersistenceMapper.mapGitHubCandidates(original)
+        val restored = AttachmentPersistenceMapper.restore(record, candidates) as GitHubRepositoryLink
 
         assertEquals(AttachmentPurpose.SOURCE_CODE, restored.purpose)
-        assertEquals("Sync later with ProgrammingTask", restored.notes)
+        assertEquals("Sync later with repository activity", restored.notes)
         assertEquals("main", restored.effectiveBranch)
         assertEquals("owner/repo", restored.fullName)
+        assertEquals(2, restored.activeIssuesCount)
+        assertEquals(1, restored.openPullRequestsCount)
+        assertEquals(3, restored.importableCandidates.size)
+    }
+
+    @Test
+    fun testGitHubSyncCreatesStubRepositorySnapshot() {
+        val attachment = GitHubRepositoryLink(
+            id = 1L,
+            title = "Repo",
+            url = "https://github.com/owner/repo"
+        )
+
+        attachment.sync()
+
+        assertEquals(2, attachment.activeIssuesCount)
+        assertEquals(1, attachment.openPullRequestsCount)
+        assertNotNull(attachment.repositorySnapshot.syncedAt)
+        assertEquals(3, attachment.importableCandidates.size)
     }
 
     @Test

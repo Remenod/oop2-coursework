@@ -230,9 +230,10 @@ class InMemoryTaskRepositoryTest {
     fun testCreateTaskWithDoneStatusFailsValidation() = runTest {
         repository.addDiscipline(Discipline(1L, "D1", "T", 1, 0))
         val result = WorkItemEditResult(
-            title = "Task", description = "D", type = WorkItemType.PROGRAMMING,
+            title = "Task", description = "D", type = WorkItemType.READING,
             status = WorkStatus.DONE, priority = Priority.NORMAL, deadline = null, estimatedMinutes = 10,
-            requiredCommits = 5, commitsCount = 0 // Not ready
+            totalPages = 10,
+            readPages = 0
         )
         
         try {
@@ -240,17 +241,6 @@ class InMemoryTaskRepositoryTest {
             repository.addRootWorkItem(1L, item)
             fail("Should throw IllegalStateException")
         } catch (_: IllegalStateException) {}
-    }
-
-    @Test
-    fun testProgrammingTaskCompletionTargets() = runTest {
-        val task = ProgrammingTask(0, "P", "D", requiredCommits = 10, requiredIssues = 5)
-        assertFalse(task.canBeCompleted())
-        
-        task.commitsCount = 10
-        task.issuesResolved = 5
-        task.testsPassed = 1.0
-        assertTrue(task.canBeCompleted())
     }
 
     @Test
