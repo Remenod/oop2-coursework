@@ -157,7 +157,7 @@ GitHub attachments are parsed into structured repository information:
 
 GitHub attachments are task-agnostic. They can be attached to any task that needs repository context, without forcing a separate task subtype or manual repository metrics into progress calculation.
 
-Current GitHub sync is intentionally mocked. It refreshes a local placeholder snapshot with active issue count, open pull request count, last repository activity time, and importable issue / pull request candidates. Future real sync can replace that stub without changing the task model.
+GitHub sync uses the public GitHub API for repository metadata, active issues, open pull requests, last repository activity, and importable issue / pull request candidates. It is intentionally unauthenticated for now, so private repositories and higher rate limits are out of scope.
 
 Importable GitHub candidates can be copied into an atomic task checklist. This keeps repository work actionable while preserving the existing checklist-based completion rules.
 
@@ -313,14 +313,17 @@ Added lightweight snapshot persistence without Room or another database:
 
 ### Phase 7 — Real External Integrations
 
-Planned after local persistence.
+In progress.
 
-Possible integrations:
+Implemented:
 
 - real GitHub repository sync;
 - fetch repository activity;
 - fetch issue and pull request status;
 - import selected GitHub issue and pull request items into task checklists;
+
+Remaining possible integrations:
+
 - Google Classroom assignment metadata import;
 - Google Classroom submission status;
 - Android file picker;
@@ -329,7 +332,7 @@ Possible integrations:
 - calendar export;
 - deadline reminders.
 
-These integrations are intentionally deferred because they add external API and permission complexity.
+The remaining integrations are intentionally deferred because they add external API and permission complexity.
 
 ### Phase 8 — UX Polish and Release Preparation
 
@@ -352,7 +355,7 @@ Planned work:
 ## Known Limitations
 
 - Local persistence is snapshot-based, not a relational database.
-- GitHub sync is mocked.
+- GitHub sync is unauthenticated and supports public repositories only.
 - Google Classroom sync and submit actions are mocked.
 - Local file opening is not backed by Android file picker permissions yet.
 - No background reminders or notifications are implemented yet.

@@ -1,4 +1,4 @@
-# Project Implementation Status (Phase 6 Audit)
+# Project Implementation Status (Phase 7 Audit)
 
 ## Core Architecture
 - [x] Clean MVVM + UDF structure.
@@ -21,6 +21,7 @@
 - [x] Runtime startup uses saved data when present and an empty state otherwise.
 - [x] `WorkItemFactory` for secure task creation and metadata initialization.
 - [x] Persistence Mappers synchronized with refined domain models.
+- [x] Public GitHub repository sync service with fakeable HTTP client.
 
 ## UI & Presentation
 - [x] `WorkItemEditSheet` using typed `WorkItemEditResult` and `DateTimeUiFormatter`.
@@ -28,6 +29,7 @@
 - [x] `WorkListViewModel` and `WorkDetailViewModel` with `actionError` feedback.
 - [x] Interactive specialized sections (Reading slider, Exam topics, Seminar stages).
 - [x] Attachments UI (interactive links via `LocalUriHandler`, distinct icons/colors).
+- [x] GitHub attachment sync/import actions for repository issues and pull requests.
 - [x] Work Log UI (concise summary on main screen + full History BottomSheet).
 - [x] Dashboard route with recursive analytics summary.
 - [x] Work list search, filters, attachment-purpose filtering, and sorting.
@@ -46,10 +48,13 @@
 - [x] **Dashboard Empty States**: Empty dashboard data has a dedicated state.
 - [x] **README Roadmap Cleanup**: Public roadmap synchronized with implementation status.
 - [x] **Simple Local Persistence**: App data survives restart through a local snapshot file.
+- [x] **Stage 7A GitHub Sync**: Public GitHub metadata, active issues, open pull requests, and import candidates are loaded through an integration service.
 
-## Phase 6 Scope Notes
+## Phase 7 Scope Notes
 - Recent activity on the dashboard is intentionally out of scope for this phase.
 - Work logs remain available in task detail, and total logged time is included in analytics.
 - Room, DAO, KSP, SQLite, migrations, and complex database concerns are intentionally out of scope.
 - `InMemoryTaskRepository` remains available for tests and non-persistent scenarios.
 - No placeholder seed data is injected into the runtime app.
+- GitHub sync is unauthenticated and supports public repositories only.
+- Google Classroom, Android file picker, calendar export, and reminders remain future integrations.
