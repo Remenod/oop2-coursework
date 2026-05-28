@@ -96,13 +96,13 @@ class GitHubRepositoryLink(
 
     override fun sync() {
         repositorySnapshot = createStubSnapshot()
-        println("GitHub sync placeholder for: ${repositoryInfo?.fullName ?: url}")
+        println("Refreshing local GitHub snapshot for: ${repositoryInfo?.fullName ?: url}")
     }
 
     fun syncHint(): String {
         val repo = fullName ?: title
         val branchText = effectiveBranch?.let { " on branch $it" } ?: ""
-        return "Future GitHub sync can update repository activity, open pull requests, active issues, and importable work items for $repo$branchText."
+        return "GitHub sync can update repository activity, open pull requests, active issues, and importable work items for $repo$branchText."
     }
 
     private fun createStubSnapshot(now: LocalDateTime = LocalDateTime.now()): GitHubRepositorySnapshot {

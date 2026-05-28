@@ -6,6 +6,7 @@ import com.remenod.oop2_coursework.domain.model.*
 import com.remenod.oop2_coursework.domain.repository.TaskRepository
 import com.remenod.oop2_coursework.domain.interfaces.Syncable
 import com.remenod.oop2_coursework.domain.interfaces.Submittable
+import com.remenod.oop2_coursework.domain.service.GitHubRepositoryService
 import com.remenod.oop2_coursework.presentation.common.DateTimeUiFormatter
 import com.remenod.oop2_coursework.presentation.worklist.WorkItemEditResult
 import com.remenod.oop2_coursework.presentation.worklist.WorkItemFactory
@@ -14,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class WorkDetailViewModel(
     private val repository: TaskRepository,
-    private val workItemId: Long
+    private val workItemId: Long,
+    private val gitHubRepositoryService: GitHubRepositoryService
 ) : ViewModel() {
 
     private val _actionError = MutableStateFlow<String?>(null)
@@ -269,16 +271,18 @@ class WorkDetailViewModel(
             try {
                 val item = repository.observeWorkItem(workItemId).first() ?: error("Task not found")
                 val attachment = item.attachments.find { it.id == attachmentId } ?: error("Attachment not found")
-                require(attachment is Syncable) { "This attachment type does not support sync" }
-
-                attachment.sync()
-                repository.updateWorkItem(item)
 
                 val message = if (attachment is GitHubRepositoryLink) {
-                    "GitHub sync placeholder: refreshed repository activity for ${attachment.fullName ?: attachment.title}."
+                    val result = gitHubRepositoryService.sync(attachment)
+                    attachment.repositorySnapshot = result.snapshot
+                    result.message
                 } else {
+                    require(attachment is Syncable) { "This attachment type does not support sync" }
+                    attachment.sync()
                     "Synced attachment: ${attachment.title}"
                 }
+                repository.updateWorkItem(item)
+
                 addAutoLog(message)
                 _actionError.value = message
             } catch (e: Exception) {
