@@ -6,7 +6,7 @@ The current product is a local Android application built with Kotlin, Jetpack Co
 
 ## Product Vision
 
-The final product is a study-oriented task management application for Android. It helps users manage academic disciplines and all work items related to them: programming assignments, exam preparation, seminars, reading tasks, general tasks, and complex projects with nested subtasks.
+The final product is a study-oriented task management application for Android. It helps users manage academic disciplines and all work items related to them: repository-based coursework, exam preparation, seminars, reading tasks, general tasks, and complex projects with nested subtasks.
 
 The main goal of the project is to demonstrate real OOP usage in a practical Android application:
 
@@ -65,7 +65,6 @@ WorkItem
 ├── AtomicWorkItem
 │   ├── GenericTask
 │   ├── ReadingTask
-│   ├── ProgrammingTask
 │   ├── ExamTask
 │   └── SeminarTask
 └── CompositeWorkItem
@@ -99,20 +98,6 @@ Tracks reading progress using:
 - `totalPages`.
 
 Progress is calculated as `readPages / totalPages`. Page updates are validated through `updatePages()`.
-
-### ProgrammingTask
-
-Tracks programming assignment progress using:
-
-- current commits;
-- required commits;
-- resolved issues;
-- required issues;
-- test progress;
-- optional checklist;
-- optional linked repository URL and branch.
-
-Programming progress is calculated by normalized weighted components. Empty checklists no longer provide free progress.
 
 ### ExamTask
 
@@ -170,9 +155,11 @@ GitHub attachments are parsed into structured repository information:
 - issues URL;
 - pull requests URL.
 
-When a GitHub attachment is added to a `ProgrammingTask`, the task can use it as its primary repository reference. The implementation keeps a clear extension point for future real GitHub API integration.
+GitHub attachments are task-agnostic. They can be attached to any task that needs repository context, without forcing a separate task subtype or manual repository metrics into progress calculation.
 
-Current GitHub sync is intentionally mocked. Future sync can update programming statistics such as commits, issues, and test status.
+Current GitHub sync is intentionally mocked. It refreshes a local placeholder snapshot with active issue count, open pull request count, last repository activity time, and importable issue / pull request candidates. Future real sync can replace that stub without changing the task model.
+
+Importable GitHub candidates can be copied into an atomic task checklist. This keeps repository work actionable while preserving the existing checklist-based completion rules.
 
 ## Work Logs and Activity Timeline
 
@@ -184,7 +171,6 @@ Examples of logged events:
 - status change;
 - checklist update;
 - reading progress update;
-- programming stats update;
 - exam topic update;
 - seminar stage update;
 - attachment added or removed;
@@ -266,7 +252,7 @@ Implemented discipline CRUD, root task CRUD, project subtasks, recursive task lo
 
 Completed.
 
-Added interactive behavior for `ReadingTask`, `ProgrammingTask`, `ExamTask`, `SeminarTask`, and checklist-based `GenericTask`.
+Added interactive behavior for `ReadingTask`, `ExamTask`, `SeminarTask`, and checklist-based `GenericTask`.
 
 ### Phase 3C — Metadata, Deadlines, and Validation Stabilization
 
@@ -332,9 +318,9 @@ Planned after local persistence.
 Possible integrations:
 
 - real GitHub repository sync;
-- fetch commit count;
-- fetch issue status;
-- update `ProgrammingTask` stats from repository data;
+- fetch repository activity;
+- fetch issue and pull request status;
+- import selected GitHub issue and pull request items into task checklists;
 - Google Classroom assignment metadata import;
 - Google Classroom submission status;
 - Android file picker;
@@ -394,7 +380,7 @@ The project includes unit tests for:
 - recursive global search with attachment-purpose filtering.
 - local snapshot save/load behavior.
 
-Current verification command:
+Current check command:
 
 ```bash
 ./gradlew test

@@ -7,7 +7,7 @@
 - [x] Simple file-backed runtime persistence without Room/SQLite.
 
 ## Domain Model
-- [x] `WorkItem` polymorphic hierarchy (Generic, Reading, Programming, Exam, Seminar, Project).
+- [x] `WorkItem` polymorphic hierarchy (Generic, Reading, Exam, Seminar, Project).
 - [x] `ProjectTask` (Composite pattern) for recursive subtasks.
 - [x] Specialized metadata (deadlines, priorities, estimates, timestamps).
 - [x] Attachments system (polymorphic Link/Resource types).
@@ -26,7 +26,7 @@
 - [x] `WorkItemEditSheet` using typed `WorkItemEditResult` and `DateTimeUiFormatter`.
 - [x] Native `DatePicker` integration for deadlines.
 - [x] `WorkListViewModel` and `WorkDetailViewModel` with `actionError` feedback.
-- [x] Interactive specialized sections (Reading slider, Programming stats, Exam topics).
+- [x] Interactive specialized sections (Reading slider, Exam topics, Seminar stages).
 - [x] Attachments UI (interactive links via `LocalUriHandler`, distinct icons/colors).
 - [x] Work Log UI (concise summary on main screen + full History BottomSheet).
 - [x] Dashboard route with recursive analytics summary.

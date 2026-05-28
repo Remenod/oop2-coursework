@@ -15,11 +15,11 @@ object WorkItemPersistenceMapper {
         val bundleChecklist = mutableListOf<ChecklistItemRecord>()
         val bundleTopics = mutableListOf<ExamTopicRecord>()
         val bundleAttachments = mutableListOf<AttachmentRecord>()
+        val bundleGitHubCandidates = mutableListOf<GitHubWorkCandidateRecord>()
         val bundleLogs = mutableListOf<WorkLogEntryRecord>()
 
         fun process(item: WorkItem, parentId: Long?, order: Int) {
             val type = when (item) {
-                is ProgrammingTask -> WorkItemType.PROGRAMMING
                 is ExamTask -> WorkItemType.EXAM
                 is SeminarTask -> WorkItemType.SEMINAR
                 is ReadingTask -> WorkItemType.READING
@@ -42,22 +42,11 @@ object WorkItemPersistenceMapper {
                 updatedAt = item.updatedAt,
                 estimatedMinutes = item.estimatedMinutes,
 
-                // Programming
-                repositoryUrl = (item as? ProgrammingTask)?.repositoryUrl,
-                branch = (item as? ProgrammingTask)?.branch,
-                commitsCount = (item as? ProgrammingTask)?.commitsCount,
-                requiredCommits = (item as? ProgrammingTask)?.requiredCommits,
-                issuesResolved = (item as? ProgrammingTask)?.issuesResolved,
-                requiredClosedIssues = (item as? ProgrammingTask)?.requiredIssues,
-                testsPassed = (item as? ProgrammingTask)?.testsPassed,
-
                 // Reading
                 readPages = (item as? ReadingTask)?.readPages,
                 totalPages = (item as? ReadingTask)?.totalPages,
 
                 // Seminar
-                seminarTopic = null,
-                presentationRequired = null,
                 topicSelected = (item as? SeminarTask)?.topicSelected,
                 materialsCollected = (item as? SeminarTask)?.materialsCollected,
                 speechPrepared = (item as? SeminarTask)?.speechPrepared,
@@ -82,6 +71,7 @@ object WorkItemPersistenceMapper {
 
             item.attachments.forEach {
                 bundleAttachments.add(AttachmentPersistenceMapper.mapToRecord(item.id, it))
+                bundleGitHubCandidates.addAll(AttachmentPersistenceMapper.mapGitHubCandidates(it))
             }
 
             item.logs.forEach {
@@ -108,6 +98,7 @@ object WorkItemPersistenceMapper {
             checklistItems = bundleChecklist,
             examTopics = bundleTopics,
             attachments = bundleAttachments,
+            githubWorkCandidates = bundleGitHubCandidates,
             logs = bundleLogs
         )
     }
@@ -120,6 +111,7 @@ object WorkItemPersistenceMapper {
         val checklistMap = bundle.checklistItems.groupBy { it.workItemId }
         val topicsMap = bundle.examTopics.groupBy { it.workItemId }
         val attachmentsMap = bundle.attachments.groupBy { it.workItemId }
+        val githubCandidatesMap = bundle.githubWorkCandidates.groupBy { it.attachmentId }
         val logsMap = bundle.logs.groupBy { it.workItemId }
 
         // 1. Create instances
@@ -136,7 +128,12 @@ object WorkItemPersistenceMapper {
                     }
                 }
                 attachmentsMap[record.id]?.forEach { 
-                    addAttachment(AttachmentPersistenceMapper.restore(it)) 
+                    addAttachment(
+                        AttachmentPersistenceMapper.restore(
+                            record = it,
+                            githubCandidates = githubCandidatesMap[it.id].orEmpty()
+                        )
+                    )
                 }
                 logsMap[record.id]?.forEach {
                     addLog(WorkLogEntry(it.id, it.message, it.createdAt, it.minutesSpent))
@@ -168,17 +165,10 @@ object WorkItemPersistenceMapper {
 
     private fun restoreConcrete(record: WorkItemRecord): WorkItem {
         return when (record.type) {
-            WorkItemType.PROGRAMMING -> ProgrammingTask(
+            WorkItemType.PROGRAMMING -> GenericTask(
                 id = record.id,
                 title = record.title,
                 description = record.description,
-                commitsCount = record.commitsCount ?: 0,
-                requiredCommits = record.requiredCommits ?: 5,
-                issuesResolved = record.issuesResolved ?: 0,
-                requiredIssues = record.requiredClosedIssues ?: 2,
-                testsPassed = record.testsPassed ?: 0.0,
-                repositoryUrl = record.repositoryUrl,
-                branch = record.branch,
                 estimatedMinutes = record.estimatedMinutes,
                 status = record.status,
                 priority = record.priority,

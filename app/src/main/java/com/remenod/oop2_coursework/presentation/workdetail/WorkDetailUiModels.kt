@@ -37,16 +37,7 @@ data class WorkItemDetailUiModel(
     // Reading
     val readPages: Int? = null,
     val totalPages: Int? = null,
-    
-    // Programming
-    val commitsCount: Int? = null,
-    val requiredCommits: Int? = null,
-    val issuesResolved: Int? = null,
-    val requiredIssues: Int? = null,
-    val testsPassed: Double? = null,
-    val repositoryUrl: String? = null,
-    val branch: String? = null,
-    
+
     // Exam
     val examTopics: List<ExamTopicUiModel> = emptyList(),
     
@@ -104,7 +95,13 @@ data class AttachmentUiModel(
     val syncHint: String?,
     val providerLabel: String?,
     val branchLabel: String?,
-    val repositoryFullName: String?
+    val repositoryFullName: String?,
+    val activeIssuesCount: Int? = null,
+    val openPullRequestsCount: Int? = null,
+    val lastRepositoryActivityText: String? = null,
+    val syncedAtText: String? = null,
+    val importableCandidateCount: Int = 0,
+    val canImportCandidates: Boolean = false
 )
 
 data class WorkLogEntryUiModel(

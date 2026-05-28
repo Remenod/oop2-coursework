@@ -1,6 +1,7 @@
 package com.remenod.oop2_coursework.data.persistence.mapper
 
 import com.remenod.oop2_coursework.data.persistence.model.AttachmentRecord
+import com.remenod.oop2_coursework.data.persistence.model.GitHubWorkCandidateRecord
 import com.remenod.oop2_coursework.domain.model.*
 
 object AttachmentPersistenceMapper {
@@ -33,18 +34,62 @@ object AttachmentPersistenceMapper {
             branch = (domain as? GitHubRepositoryLink)?.effectiveBranch,
             repositoryOwner = (domain as? GitHubRepositoryLink)?.owner,
             repositoryName = (domain as? GitHubRepositoryLink)?.repositoryName,
+            defaultBranch = (domain as? GitHubRepositoryLink)?.repositorySnapshot?.defaultBranch,
+            activeIssuesCount = (domain as? GitHubRepositoryLink)?.activeIssuesCount,
+            openPullRequestsCount = (domain as? GitHubRepositoryLink)?.openPullRequestsCount,
+            lastRepositoryActivityAt = (domain as? GitHubRepositoryLink)?.repositorySnapshot?.lastRepositoryActivityAt,
+            syncedAt = (domain as? GitHubRepositoryLink)?.repositorySnapshot?.syncedAt,
             lastOpenedAt = domain.lastOpenedAt,
             createdAt = domain.createdAt
         )
     }
 
-    fun restore(record: AttachmentRecord): Attachment {
+    fun mapGitHubCandidates(domain: Attachment): List<GitHubWorkCandidateRecord> {
+        val github = domain as? GitHubRepositoryLink ?: return emptyList()
+        return github.repositorySnapshot.workCandidates.mapIndexed { index, candidate ->
+            GitHubWorkCandidateRecord(
+                id = 0,
+                attachmentId = github.id,
+                type = candidate.type,
+                number = candidate.number,
+                title = candidate.title,
+                url = candidate.url,
+                state = candidate.state,
+                createdAt = candidate.createdAt,
+                updatedAt = candidate.updatedAt,
+                sortOrder = index
+            )
+        }
+    }
+
+    fun restore(
+        record: AttachmentRecord,
+        githubCandidates: List<GitHubWorkCandidateRecord> = emptyList()
+    ): Attachment {
         val attachment = when (record.subType) {
             AttachmentSubtype.GITHUB -> GitHubRepositoryLink(
                 id = record.id,
                 title = record.name,
                 url = record.urlOrPath,
                 branch = record.branch,
+                repositorySnapshot = GitHubRepositorySnapshot(
+                    activeIssuesCount = record.activeIssuesCount ?: 0,
+                    openPullRequestsCount = record.openPullRequestsCount ?: 0,
+                    defaultBranch = record.defaultBranch,
+                    lastRepositoryActivityAt = record.lastRepositoryActivityAt,
+                    syncedAt = record.syncedAt,
+                    workCandidates = githubCandidates.sortedBy { it.sortOrder }.map {
+                        GitHubWorkCandidate(
+                            type = it.type,
+                            number = it.number,
+                            title = it.title,
+                            url = it.url,
+                            state = it.state,
+                            createdAt = it.createdAt,
+                            updatedAt = it.updatedAt
+                        )
+                    }
+                ),
                 createdAt = record.createdAt,
                 purpose = record.purpose,
                 notes = record.notes

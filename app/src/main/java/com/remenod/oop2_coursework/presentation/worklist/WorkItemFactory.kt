@@ -2,7 +2,6 @@ package com.remenod.oop2_coursework.presentation.worklist
 
 import com.remenod.oop2_coursework.domain.model.ExamTask
 import com.remenod.oop2_coursework.domain.model.GenericTask
-import com.remenod.oop2_coursework.domain.model.ProgrammingTask
 import com.remenod.oop2_coursework.domain.model.ProjectTask
 import com.remenod.oop2_coursework.domain.model.ReadingTask
 import com.remenod.oop2_coursework.domain.model.SeminarTask
@@ -26,16 +25,7 @@ object WorkItemFactory {
                     it.updatePages(readPages, totalPages)
                 }
             }
-            WorkItemType.PROGRAMMING -> ProgrammingTask(
-                id = 0,
-                title = result.title,
-                description = result.description,
-                commitsCount = result.commitsCount ?: 0,
-                requiredCommits = result.requiredCommits ?: 5,
-                issuesResolved = result.issuesResolved ?: 0,
-                requiredIssues = result.requiredIssues ?: 2,
-                testsPassed = result.testsPassed ?: 0.0
-            )
+            WorkItemType.PROGRAMMING -> GenericTask(0, result.title, result.description)
             WorkItemType.EXAM -> ExamTask(0, result.title, result.description)
             WorkItemType.SEMINAR -> SeminarTask(0, result.title, result.description)
             WorkItemType.GENERIC -> GenericTask(0, result.title, result.description)

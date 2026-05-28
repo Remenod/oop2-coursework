@@ -132,7 +132,8 @@ fun WorkDetailScreen(
                             }
                         },
                         onSync = viewModel::syncAttachment,
-                        onSubmit = viewModel::submitAttachment
+                        onSubmit = viewModel::submitAttachment,
+                        onImportCandidates = viewModel::importGitHubCandidates
                     )
                 }
 
@@ -159,9 +160,6 @@ fun WorkDetailScreen(
                 when (item.type) {
                     WorkItemType.READING -> item {
                         ReadingTaskSection(item, viewModel::updateReadingProgress)
-                    }
-                    WorkItemType.PROGRAMMING -> item {
-                        ProgrammingTaskSection(item, viewModel::updateProgrammingStats)
                     }
                     WorkItemType.EXAM -> {
                         item {
@@ -205,6 +203,7 @@ fun WorkDetailScreen(
                         }
                     }
                     WorkItemType.GENERIC -> {}
+                    WorkItemType.PROGRAMMING -> {}
                 }
 
                 item {
@@ -228,6 +227,7 @@ fun WorkDetailScreen(
             initialStatus = uiState.item!!.status,
             initialDeadline = uiState.item!!.deadline,
             initialEstimatedMinutes = uiState.item!!.estimatedMinutes,
+            initialTotalPages = uiState.item!!.totalPages ?: 100,
             initialType = uiState.item!!.type,
             allowTypeChange = false,
             onDismiss = { showEditDialog = false },
@@ -401,62 +401,6 @@ fun ReadingTaskSection(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Save Reading Progress")
-            }
-        }
-    }
-}
-
-@Composable
-fun ProgrammingTaskSection(
-    item: WorkItemDetailUiModel,
-    onUpdate: (Int, Int, Int, Int, Double) -> Unit
-) {
-    var commits by rememberSaveable(item.id, item.commitsCount) { mutableStateOf((item.commitsCount ?: 0).toString()) }
-    var reqCommits by rememberSaveable(item.id, item.requiredCommits) { mutableStateOf((item.requiredCommits ?: 5).toString()) }
-    var issues by rememberSaveable(item.id, item.issuesResolved) { mutableStateOf((item.issuesResolved ?: 0).toString()) }
-    var reqIssues by rememberSaveable(item.id, item.requiredIssues) { mutableStateOf((item.requiredIssues ?: 2).toString()) }
-    var tests by rememberSaveable(item.id, item.testsPassed) { mutableFloatStateOf(item.testsPassed?.toFloat() ?: 0f) }
-
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Programming Stats", style = MaterialTheme.typography.titleSmall)
-
-            if (item.repositoryUrl != null) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text("Linked repository", style = MaterialTheme.typography.labelMedium)
-                        Text(item.repositoryUrl, style = MaterialTheme.typography.labelSmall)
-                        item.branch?.let { Text("Branch: $it", style = MaterialTheme.typography.labelSmall) }
-                    }
-                }
-            }
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = reqCommits, onValueChange = { reqCommits = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
-            }
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = reqIssues, onValueChange = { reqIssues = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
-            }
-            
-            Text("Tests Passed: ${(tests * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
-            Slider(value = tests, onValueChange = { tests = it })
-            
-            Button(onClick = { 
-                onUpdate(
-                    commits.toIntOrNull() ?: 0, 
-                    reqCommits.toIntOrNull() ?: 5,
-                    issues.toIntOrNull() ?: 0,
-                    reqIssues.toIntOrNull() ?: 2,
-                    tests.toDouble()
-                )
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("Update Stats")
             }
         }
     }

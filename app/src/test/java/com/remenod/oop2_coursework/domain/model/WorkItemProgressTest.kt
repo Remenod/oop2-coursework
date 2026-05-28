@@ -6,17 +6,6 @@ import org.junit.Test
 class WorkItemProgressTest {
 
     @Test
-    fun testProgrammingTaskProgressNormalization() {
-        // 3 active components (commits, issues, tests), each weight 0.25 -> total 0.75
-        // 5/5 commits = 1.0
-        // 0/2 issues = 0.0
-        // 0.0 tests = 0.0
-        // Progress = (1.0*0.25 + 0.0*0.25 + 0.0*0.25) / 0.75 = 0.333
-        val task = ProgrammingTask(1L, "Test", "Desc", commitsCount = 5, issuesResolved = 0, testsPassed = 0.0)
-        assertEquals(0.333, task.getProgress(), 0.01)
-    }
-
-    @Test
     fun testExamTaskProgress() {
         val task = ExamTask(1L, "Test", "Desc", mutableListOf(
             ExamTopic("Topic 1", 100),

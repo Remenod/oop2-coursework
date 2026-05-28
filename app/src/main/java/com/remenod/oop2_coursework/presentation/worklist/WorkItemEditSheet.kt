@@ -28,11 +28,6 @@ fun WorkItemEditSheet(
     initialDeadline: LocalDateTime? = null,
     initialEstimatedMinutes: Int = 0,
     initialTotalPages: Int = 100,
-    initialCommits: Int = 0,
-    initialRequiredCommits: Int = 5,
-    initialIssues: Int = 0,
-    initialRequiredIssues: Int = 2,
-    initialTests: Double = 0.0,
     allowTypeChange: Boolean = true,
     allowDoneStatus: Boolean = false,
     onDismiss: () -> Unit,
@@ -61,11 +56,6 @@ fun WorkItemEditSheet(
     }
 
     var totalPages by rememberSaveable { mutableStateOf(initialTotalPages.toString()) }
-    var commits by rememberSaveable { mutableStateOf(initialCommits.toString()) }
-    var reqCommits by rememberSaveable { mutableStateOf(initialRequiredCommits.toString()) }
-    var issues by rememberSaveable { mutableStateOf(initialIssues.toString()) }
-    var reqIssues by rememberSaveable { mutableStateOf(initialRequiredIssues.toString()) }
-    var tests by rememberSaveable { mutableStateOf(initialTests.toFloat()) }
 
     val deadlineValid = DateTimeUiFormatter.isValidInput(deadlineInput)
     val parsedDeadline = DateTimeUiFormatter.parseInput(deadlineInput)
@@ -112,7 +102,7 @@ fun WorkItemEditSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    WorkItemType.entries.forEach { type ->
+                    WorkItemType.entries.filterNot { it == WorkItemType.PROGRAMMING }.forEach { type ->
                         FilterChip(
                             selected = selectedType == type,
                             onClick = { selectedType = type },
@@ -215,22 +205,6 @@ fun WorkItemEditSheet(
                 )
             }
             
-            if (selectedType == WorkItemType.PROGRAMMING) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Targets", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = commits, onValueChange = { commits = it.filter { c -> c.isDigit() } }, label = { Text("Commits") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(value = reqCommits, onValueChange = { reqCommits = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = issues, onValueChange = { issues = it.filter { c -> c.isDigit() } }, label = { Text("Issues") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(value = reqIssues, onValueChange = { reqIssues = it.filter { c -> c.isDigit() } }, label = { Text("Target") }, modifier = Modifier.weight(1f))
-                    }
-                    Text("Tests Passed: ${(tests * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
-                    Slider(value = tests, onValueChange = { tests = it })
-                }
-            }
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -248,12 +222,7 @@ fun WorkItemEditSheet(
                             priority = selectedPriority,
                             deadline = parsedDeadline,
                             estimatedMinutes = estimatedMinutes.toIntOrNull() ?: 0,
-                            totalPages = totalPages.toIntOrNull(),
-                            commitsCount = commits.toIntOrNull(),
-                            requiredCommits = reqCommits.toIntOrNull(),
-                            issuesResolved = issues.toIntOrNull(),
-                            requiredIssues = reqIssues.toIntOrNull(),
-                            testsPassed = tests.toDouble()
+                            totalPages = totalPages.toIntOrNull()
                         )
                         onConfirm(result)
                         onDismiss()

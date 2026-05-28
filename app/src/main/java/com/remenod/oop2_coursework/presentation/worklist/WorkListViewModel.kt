@@ -127,7 +127,6 @@ class WorkListViewModel(
             id = id,
             title = title,
             typeLabel = when (this) {
-                is ProgrammingTask -> "Programming"
                 is ExamTask -> "Exam"
                 is SeminarTask -> "Seminar"
                 is ReadingTask -> "Reading"
@@ -158,7 +157,6 @@ class WorkListViewModel(
         return when (typeFilter) {
             WorkListTypeFilter.ALL -> true
             WorkListTypeFilter.GENERIC -> this is GenericTask
-            WorkListTypeFilter.PROGRAMMING -> this is ProgrammingTask
             WorkListTypeFilter.EXAM -> this is ExamTask
             WorkListTypeFilter.SEMINAR -> this is SeminarTask
             WorkListTypeFilter.READING -> this is ReadingTask

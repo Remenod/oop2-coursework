@@ -15,14 +15,6 @@ enum class Priority {
     CRITICAL
 }
 
-enum class SubmissionStatus {
-    NOT_SUBMITTED,
-    DRAFT,
-    SUBMITTED,
-    LATE,
-    GRADED
-}
-
 enum class AttachmentOpenMode {
     LOCAL,
     BROWSER,
@@ -32,6 +24,7 @@ enum class AttachmentOpenMode {
 
 enum class WorkItemType {
     GENERIC,
+    // Legacy value kept so old local snapshots can be restored as GenericTask.
     PROGRAMMING,
     EXAM,
     SEMINAR,
@@ -63,6 +56,18 @@ enum class AttachmentPurpose {
     OUTPUT_ARTIFACT,
     LOCAL_RESOURCE,
     CLOUD_RESOURCE
+}
+
+enum class GitHubWorkCandidateType {
+    ISSUE,
+    PULL_REQUEST
+}
+
+enum class GitHubWorkCandidateState {
+    OPEN,
+    CLOSED,
+    MERGED,
+    DRAFT
 }
 
 enum class SeminarStageType {

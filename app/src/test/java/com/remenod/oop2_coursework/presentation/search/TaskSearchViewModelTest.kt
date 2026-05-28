@@ -3,8 +3,8 @@ package com.remenod.oop2_coursework.presentation.search
 import com.remenod.oop2_coursework.data.repository.InMemoryTaskRepository
 import com.remenod.oop2_coursework.domain.model.AttachmentPurpose
 import com.remenod.oop2_coursework.domain.model.Discipline
+import com.remenod.oop2_coursework.domain.model.GenericTask
 import com.remenod.oop2_coursework.domain.model.GitHubRepositoryLink
-import com.remenod.oop2_coursework.domain.model.ProgrammingTask
 import com.remenod.oop2_coursework.domain.model.ProjectTask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,7 +39,7 @@ class TaskSearchViewModelTest {
         val repository = InMemoryTaskRepository()
         val discipline = Discipline(1L, "OOP", "Teacher", 4, 0)
         val project = ProjectTask(10L, "Coursework", "D")
-        val programmingTask = ProgrammingTask(11L, "Repository task", "D").apply {
+        val repositoryTask = GenericTask(11L, "Repository task", "D").apply {
             addAttachment(
                 GitHubRepositoryLink(
                     id = 100L,
@@ -50,7 +50,7 @@ class TaskSearchViewModelTest {
             )
         }
 
-        project.addSubTask(programmingTask)
+        project.addSubTask(repositoryTask)
         discipline.addWorkItem(project)
         repository.addDiscipline(discipline)
 

@@ -64,16 +64,6 @@ fun AttachmentEditSheet(
         ) {
             Text("Add Attachment", style = MaterialTheme.typography.headlineSmall)
 
-            if (taskType == WorkItemType.PROGRAMMING) {
-                AssistChip(
-                    onClick = {
-                        selectedSubtype = AttachmentSubtype.GITHUB
-                        selectedPurpose = AttachmentPurpose.SOURCE_CODE
-                    },
-                    label = { Text("Programming task: GitHub source code is recommended") }
-                )
-            }
-
             Text("Type", style = MaterialTheme.typography.labelLarge)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -140,7 +130,7 @@ fun AttachmentEditSheet(
                     label = { Text("Branch, optional") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Reserved for future GitHub sync with ProgrammingTask commits/issues/tests") }
+                    supportingText = { Text("Used by future GitHub sync and local repository notes") }
                 )
             }
 
@@ -171,20 +161,6 @@ fun AttachmentEditSheet(
                 supportingText = { Text("Example: assignment source, dataset, final PDF, API docs, starter code") }
             )
 
-            if (selectedSubtype == AttachmentSubtype.GITHUB && taskType == WorkItemType.PROGRAMMING) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text(
-                        text = "Future synergy: this GitHub attachment can later sync commits, closed issues, tests, branch status and repository activity into ProgrammingTask.",
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -204,7 +180,7 @@ fun AttachmentEditSheet(
 }
 
 private fun defaultSubtypeFor(taskType: WorkItemType): AttachmentSubtype {
-    return if (taskType == WorkItemType.PROGRAMMING) AttachmentSubtype.GITHUB else AttachmentSubtype.UNKNOWN
+    return AttachmentSubtype.UNKNOWN
 }
 
 private fun defaultPurposeFor(taskType: WorkItemType, subtype: AttachmentSubtype): AttachmentPurpose {
@@ -229,6 +205,7 @@ private fun attachmentTypeOptions(): List<Pair<AttachmentSubtype, String>> = lis
 
 private fun purposeOptions(taskType: WorkItemType): List<AttachmentPurpose> {
     val base = mutableListOf(
+        AttachmentPurpose.SOURCE_CODE,
         AttachmentPurpose.REFERENCE,
         AttachmentPurpose.ASSIGNMENT_BRIEF,
         AttachmentPurpose.SUBMISSION,
@@ -236,9 +213,6 @@ private fun purposeOptions(taskType: WorkItemType): List<AttachmentPurpose> {
         AttachmentPurpose.NOTES,
         AttachmentPurpose.OUTPUT_ARTIFACT
     )
-    if (taskType == WorkItemType.PROGRAMMING) {
-        base.add(0, AttachmentPurpose.SOURCE_CODE)
-    }
     if (taskType == WorkItemType.EXAM || taskType == WorkItemType.PROJECT) {
         base.add(AttachmentPurpose.DATASET)
     }
